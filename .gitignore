@@ -1,0 +1,9 @@
+# local secrets and runtime files
+.env
+*.session
+*.log
+__pycache__/
+*.py[cod]
+cache/
+downloads/
+tempdb/

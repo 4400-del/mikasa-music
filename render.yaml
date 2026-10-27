@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: mikasa-music
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: |
+      apt-get update && apt-get install -y ffmpeg
+      pip install -r requirements.txt
+    startCommand: python3 -m MikasaMusic
+    autoDeploy: true
+
+    envVars:
+      API_ID:
+        sync: false
+      API_HASH:
+        sync: false
+      API_KEY:
+        sync: false
+      BOT_TOKEN:
+        sync: false
+      MONGO_DB_URI:
+        sync: false
+      OWNER_ID:
+        value: 
+      OWNER_USERNAME:
+        value: YOUR_TELEGRAM_USERNAME
+      BOT_USERNAME:
+        value: 
+      UPSTREAM_REPO:
+        value: https://github.com/4400-del/mikasa-music
+      STRING_SESSION:
+        sync: false
+      GIT_TOKEN:
+        sync: false
+      HEROKU_API_KEY:
+        sync: false
+      HEROKU_APP_NAME:
+        sync: false
+      LOG_GROUP_ID:
+        value: 
+      SUPPORT_GROUP:
+        value: https://t.me/YOUR_SUPPORT_CHANNELupport
+      SUPPORT_CHANNEL:
+        value: https://t.me/YOUR_SUPPORT_CHANNEL
+      INSTAGRAM:
+        value: https://instagram.com/
+      YOUTUBE:
+        value: https://youtube.com/@
+      GITHUB:
+        value: https://github.com/4400-del
+      DONATE:
+        value: https://t.me/YOUR_SUPPORT_CHANNEL/91
+      START_IMG_URL:
+        sync: false
