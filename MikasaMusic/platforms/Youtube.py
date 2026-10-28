@@ -70,12 +70,18 @@ async def _download_with_ytdlp(link: str, video: bool = False) -> str:
 
 async def download_song(link: str) -> str:
     try:
+        downloaded = await _download_with_invidious(link)
+        if downloaded:
+            return downloaded
+    except Exception as e:
+        LOGGER(__name__).warning(f"Invidious audio failed, trying yt-dlp: {e}")
+    try:
         downloaded = await _download_with_ytdlp(link, video=False)
         if downloaded:
             return downloaded
     except Exception as e:
         LOGGER(__name__).error(f"Audio download failed: {e}")
-    return await _download_with_invidious(link)
+    return None
 
 
 async def download_video(link: str) -> str:
@@ -109,10 +115,10 @@ async def _extract_track(link: str):
             return info
 
     try:
-        return await asyncio.to_thread(fetch)
-    except Exception as error:
-        LOGGER(__name__).warning(f"yt-dlp metadata failed, trying Invidious: {error}")
         return await _invidious_track(link)
+    except Exception as error:
+        LOGGER(__name__).warning(f"Invidious metadata failed, trying yt-dlp: {error}")
+        return await asyncio.to_thread(fetch)
 
 
 async def _invidious_json(path):
