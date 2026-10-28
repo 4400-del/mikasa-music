@@ -23,6 +23,9 @@ _TRACK_CACHE = {}
 _TRACK_CACHE_TTL = 60
 _AUDIO_CACHE = {}
 _AUDIO_CACHE_TTL = 45
+TRACK_LOOKUP_TIMEOUT = 18
+DOWNLOAD_TIMEOUT = 90
+DOWNLOAD_ATTEMPT_TIMEOUT = DOWNLOAD_TIMEOUT / 2
 
 
 def _prepare_cookie_file():
@@ -75,13 +78,17 @@ async def _download_with_ytdlp(link: str, video: bool = False) -> str:
 
 async def download_song(link: str) -> str:
     try:
-        downloaded = await _download_with_invidious(link)
+        downloaded = await asyncio.wait_for(
+            _download_with_invidious(link), timeout=DOWNLOAD_ATTEMPT_TIMEOUT
+        )
         if downloaded:
             return downloaded
     except Exception as e:
         LOGGER(__name__).warning(f"Invidious audio failed, trying yt-dlp: {e}")
     try:
-        downloaded = await _download_with_ytdlp(link, video=False)
+        downloaded = await asyncio.wait_for(
+            _download_with_ytdlp(link, video=False), timeout=DOWNLOAD_ATTEMPT_TIMEOUT
+        )
         if downloaded:
             return downloaded
     except Exception as e:
@@ -91,7 +98,9 @@ async def download_song(link: str) -> str:
 
 async def download_video(link: str) -> str:
     try:
-        return await _download_with_ytdlp(link, video=True)
+        return await asyncio.wait_for(
+            _download_with_ytdlp(link, video=True), timeout=DOWNLOAD_TIMEOUT
+        )
     except Exception as e:
         LOGGER(__name__).error(f"Video download failed: {e}")
         return None
@@ -120,10 +129,20 @@ async def _extract_track(link: str):
             return info
 
     try:
-        return await _invidious_track(link)
+        return await asyncio.wait_for(
+            _invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT / 2
+        )
     except Exception as error:
         LOGGER(__name__).warning(f"Invidious metadata failed, trying yt-dlp: {error}")
-        return await asyncio.to_thread(fetch)
+        try:
+            return await asyncio.wait_for(
+                asyncio.to_thread(fetch), timeout=TRACK_LOOKUP_TIMEOUT / 2
+            )
+        except Exception as fallback_error:
+            LOGGER(__name__).error(
+                f"Track details lookup failed after timeout: {fallback_error}"
+            )
+            raise RuntimeError("Track details could not be fetched in time") from fallback_error
 
 
 async def _invidious_json(path):
@@ -135,15 +154,18 @@ async def _invidious_json(path):
 
     tasks = [asyncio.create_task(asyncio.to_thread(request_json, instance)) for instance in INVIDIOUS_INSTANCES]
     errors = []
-    for task in asyncio.as_completed(tasks):
-        try:
-            result = await task
-            for pending in tasks:
-                if not pending.done():
-                    pending.cancel()
-            return result
-        except Exception as error:
-            errors.append(error)
+    try:
+        for task in asyncio.as_completed(tasks):
+            try:
+                return await task
+            except Exception as error:
+                errors.append(error)
+    finally:
+        pending_tasks = [task for task in tasks if not task.done()]
+        for task in pending_tasks:
+            task.cancel()
+        if pending_tasks:
+            await asyncio.gather(*pending_tasks, return_exceptions=True)
     raise RuntimeError(f"All Invidious instances failed: {errors[-1] if errors else 'unknown error'}")
 
 
@@ -199,7 +221,9 @@ async def _invidious_audio_url(link: str) -> str:
 
 async def _download_with_invidious(link: str) -> str:
     try:
-        info = await _invidious_track(link)
+        info = await asyncio.wait_for(
+            _invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT / 2
+        )
         selected = _select_audio_format(info)
         if not selected:
             return None
