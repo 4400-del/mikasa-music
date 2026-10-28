@@ -152,14 +152,19 @@ async def _extract_track(link: str):
             return info
 
     try:
-        return await asyncio.wait_for(
-            _invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT / 2
+        # Use native YouTube extraction first. Invidious search/video responses
+        # are intermittently unavailable from Render and can return stale data.
+        info = await asyncio.wait_for(
+            asyncio.to_thread(fetch), timeout=TRACK_LOOKUP_TIMEOUT * 0.65
         )
+        if info and info.get("id"):
+            return info
+        raise RuntimeError("yt-dlp returned no track")
     except Exception as error:
-        LOGGER(__name__).warning(f"Invidious metadata failed, trying yt-dlp: {error}")
+        LOGGER(__name__).warning(f"yt-dlp metadata failed, trying Invidious: {error}")
         try:
             return await asyncio.wait_for(
-                asyncio.to_thread(fetch), timeout=TRACK_LOOKUP_TIMEOUT / 2
+                _invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.35
             )
         except Exception as fallback_error:
             LOGGER(__name__).error(
