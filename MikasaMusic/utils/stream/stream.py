@@ -20,6 +20,7 @@
 # Email: YOUR_EMAIL@example.com
 
 
+import asyncio
 import os
 from random import randint
 from typing import Union
@@ -161,17 +162,26 @@ async def stream(
         duration_min = result["duration_min"]
         thumbnail = result["thumb"]
         status = True if video else None
-    
+
         current_queue = db.get(chat_id)
 
-        
         if current_queue is not None and len(current_queue) >= 10:
             return await app.send_message(original_chat_id, "You can't add more than 10 songs to the queue.")
 
+        file_path = None
+        direct = False
+        if not video:
+            try:
+                file_path = await YouTube.stream_url(vidid, videoid=True)
+                direct = bool(file_path)
+            except Exception:
+                file_path = None
         try:
-            file_path, direct = await YouTube.download(
-                vidid, mystic, videoid=True, video=status
-            )
+            if not file_path:
+                file_path, direct = await asyncio.wait_for(
+                    YouTube.download(vidid, mystic, videoid=True, video=status),
+                    timeout=45,
+                )
         except:
             raise AssistantErr(_["play_14"])
         if not file_path:
@@ -181,7 +191,7 @@ async def stream(
             await put_queue(
                 chat_id,
                 original_chat_id,
-                file_path if direct else f"vid_{vidid}",
+                f"vid_{vidid}",
                 title,
                 duration_min,
                 user_name,
@@ -209,7 +219,7 @@ async def stream(
             await put_queue(
                 chat_id,
                 original_chat_id,
-                file_path if direct else f"vid_{vidid}",
+                f"vid_{vidid}",
                 title,
                 duration_min,
                 user_name,
