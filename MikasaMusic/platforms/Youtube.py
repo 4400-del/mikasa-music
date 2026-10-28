@@ -3,6 +3,7 @@ import base64
 import os
 import re
 import subprocess
+import time
 from typing import Union
 import yt_dlp
 from pyrogram.enums import MessageEntityType
@@ -18,6 +19,10 @@ INVIDIOUS_INSTANCES = [
     "https://yt.chocolatemoo53.com",
     "https://inv.nadeko.net",
 ]
+_TRACK_CACHE = {}
+_TRACK_CACHE_TTL = 60
+_AUDIO_CACHE = {}
+_AUDIO_CACHE_TTL = 45
 
 
 def _prepare_cookie_file():
@@ -122,25 +127,35 @@ async def _extract_track(link: str):
 
 
 async def _invidious_json(path):
-    def request_json():
+    def request_json(instance):
         import requests
-        last_error = None
-        for instance in INVIDIOUS_INSTANCES:
-            try:
-                response = requests.get(instance + path, timeout=20)
-                response.raise_for_status()
-                return response.json(), instance
-            except Exception as error:
-                last_error = error
-        raise RuntimeError(f"All Invidious instances failed: {last_error}")
+        response = requests.get(instance + path, timeout=(4, 8))
+        response.raise_for_status()
+        return response.json(), instance
 
-    return await asyncio.to_thread(request_json)
+    tasks = [asyncio.create_task(asyncio.to_thread(request_json, instance)) for instance in INVIDIOUS_INSTANCES]
+    errors = []
+    for task in asyncio.as_completed(tasks):
+        try:
+            result = await task
+            for pending in tasks:
+                if not pending.done():
+                    pending.cancel()
+            return result
+        except Exception as error:
+            errors.append(error)
+    raise RuntimeError(f"All Invidious instances failed: {errors[-1] if errors else 'unknown error'}")
 
 
 async def _invidious_track(link: str):
+    cache_key = link.strip()
+    cached = _TRACK_CACHE.get(cache_key)
+    if cached and time.monotonic() - cached[0] < _TRACK_CACHE_TTL:
+        return cached[1]
     video_match = re.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{6,})", link)
     if video_match:
         info, _ = await _invidious_json(f"/api/v1/videos/{video_match.group(1)}?local=1")
+        _TRACK_CACHE[cache_key] = (time.monotonic(), info)
         return info
     from urllib.parse import quote
     results, _ = await _invidious_json(
@@ -149,13 +164,15 @@ async def _invidious_track(link: str):
     if not results:
         raise ValueError("No YouTube result found")
     result = results[0]
-    return {
+    info = {
         "id": result["videoId"],
         "title": result.get("title"),
         "duration": result.get("lengthSeconds"),
         "thumbnail": (result.get("videoThumbnails") or [{}])[0].get("url"),
         "webpage_url": f"https://www.youtube.com/watch?v={result['videoId']}",
     }
+    _TRACK_CACHE[cache_key] = (time.monotonic(), info)
+    return info
 
 
 def _select_audio_format(info):
@@ -420,8 +437,37 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
+        cached = _AUDIO_CACHE.get(link)
+        if cached and time.monotonic() - cached[0] < _AUDIO_CACHE_TTL:
+            return cached[1]
         try:
-            return await _invidious_audio_url(link)
+            audio_url = await asyncio.wait_for(_invidious_audio_url(link), timeout=10)
+            if audio_url:
+                _AUDIO_CACHE[link] = (time.monotonic(), audio_url)
+                return audio_url
         except Exception as error:
-            LOGGER(__name__).warning(f"Direct audio stream failed: {error}")
-            return None
+            LOGGER(__name__).warning(f"Invidious direct audio failed: {error}")
+
+        def resolve_with_ytdlp():
+            options = {
+                "format": "bestaudio/best",
+                "quiet": True,
+                "no_warnings": True,
+                "noplaylist": True,
+                "skip_download": True,
+            }
+            cookie_file = _prepare_cookie_file()
+            if cookie_file:
+                options["cookiefile"] = cookie_file
+            with yt_dlp.YoutubeDL(options) as ydl:
+                info = ydl.extract_info(link, download=False)
+                return info.get("url")
+
+        try:
+            audio_url = await asyncio.wait_for(asyncio.to_thread(resolve_with_ytdlp), timeout=12)
+            if audio_url:
+                _AUDIO_CACHE[link] = (time.monotonic(), audio_url)
+                return audio_url
+        except Exception as error:
+            LOGGER(__name__).warning(f"yt-dlp direct audio failed: {error}")
+        return None

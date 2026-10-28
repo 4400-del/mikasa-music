@@ -436,6 +436,11 @@ class Call(PyTgCalls):
                     file_path = await YouTube.stream_url(videoid, videoid=True)
                     direct_stream = bool(file_path)
                 if not file_path:
+                    if not video:
+                        return await mystic.edit_text(
+                            "Audio source unavailable right now. Please try this song again.",
+                            disable_web_page_preview=True,
+                        )
                     try:
                         file_path, direct = await YouTube.download(
                             videoid,
@@ -467,11 +472,14 @@ class Call(PyTgCalls):
                 except:
                     if direct_stream:
                         try:
-                            file_path, direct = await YouTube.download(
-                                videoid,
-                                mystic,
-                                videoid=True,
-                                video=False,
+                            file_path, direct = await asyncio.wait_for(
+                                YouTube.download(
+                                    videoid,
+                                    mystic,
+                                    videoid=True,
+                                    video=False,
+                                ),
+                                timeout=25,
                             )
                             if not file_path:
                                 raise RuntimeError("Audio download failed")
