@@ -175,9 +175,31 @@ async def _download_with_invidious(link: str) -> str:
                 abs(int(item.get("bitrate", 0) or 0) - 64000),
             )
         )
-        # The Invidious URL is already proxied. Passing it directly to
-        # PyTgCalls avoids waiting for the complete MP3 download first.
-        return audio[0]["url"]
+        output_dir = os.path.join(os.getcwd(), "downloads")
+        os.makedirs(output_dir, exist_ok=True)
+        video_id = info["videoId"] if info.get("videoId") else info["id"]
+        source = os.path.join(output_dir, f"{video_id}.m4a")
+        target = os.path.join(output_dir, f"{video_id}.mp3")
+
+        def fetch_audio():
+            import requests
+            with requests.get(audio[0]["url"], stream=True, timeout=(10, 20)) as response:
+                response.raise_for_status()
+                with open(source, "wb") as output:
+                    for chunk in response.iter_content(1024 * 64):
+                        if chunk:
+                            output.write(chunk)
+
+        await asyncio.wait_for(asyncio.to_thread(fetch_audio), timeout=90)
+        await asyncio.wait_for(
+            asyncio.to_thread(
+                subprocess.run,
+                ["ffmpeg", "-y", "-loglevel", "error", "-i", source, "-vn", "-codec:a", "libmp3lame", "-b:a", "96k", "-ar", "48000", target],
+                check=True,
+            ),
+            timeout=30,
+        )
+        return target if os.path.exists(target) and os.path.getsize(target) else None
     except Exception as error:
         LOGGER(__name__).error(f"Invidious audio fallback failed: {error}")
         return None
