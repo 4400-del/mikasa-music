@@ -430,14 +430,24 @@ class Call(PyTgCalls):
                 db[chat_id][0]["markup"] = "tg"
             elif "vid_" in queued:
                 mystic = await app.send_message(original_chat_id, _["call_7"])
-                try:
-                    file_path, direct = await YouTube.download(
-                        videoid,
-                        mystic,
-                        videoid=True,
-                        video=True if str(streamtype) == "video" else False,
-                    )
-                except:
+                file_path = None
+                direct_stream = False
+                if not video:
+                    file_path = await YouTube.stream_url(videoid, videoid=True)
+                    direct_stream = bool(file_path)
+                if not file_path:
+                    try:
+                        file_path, direct = await YouTube.download(
+                            videoid,
+                            mystic,
+                            videoid=True,
+                            video=True if str(streamtype) == "video" else False,
+                        )
+                    except:
+                        return await mystic.edit_text(
+                            _["call_6"], disable_web_page_preview=True
+                        )
+                if not file_path:
                     return await mystic.edit_text(
                         _["call_6"], disable_web_page_preview=True
                     )
@@ -455,10 +465,31 @@ class Call(PyTgCalls):
                 try:
                     await client.change_stream(chat_id, stream)
                 except:
-                    return await app.send_message(
-                        original_chat_id,
-                        text=_["call_6"],
-                    )
+                    if direct_stream:
+                        try:
+                            file_path, direct = await YouTube.download(
+                                videoid,
+                                mystic,
+                                videoid=True,
+                                video=False,
+                            )
+                            if not file_path:
+                                raise RuntimeError("Audio download failed")
+                            stream = AudioPiped(
+                                file_path,
+                                audio_parameters=HighQualityAudio(),
+                            )
+                            await client.change_stream(chat_id, stream)
+                        except:
+                            return await app.send_message(
+                                original_chat_id,
+                                text=_["call_6"],
+                            )
+                    else:
+                        return await app.send_message(
+                            original_chat_id,
+                            text=_["call_6"],
+                        )
                 img = await gen_thumb(videoid)
                 button = stream_markup(_, chat_id)
                 await mystic.delete()

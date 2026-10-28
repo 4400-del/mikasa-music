@@ -158,23 +158,37 @@ async def _invidious_track(link: str):
     }
 
 
+def _select_audio_format(info):
+    audio = [
+        item for item in info.get("adaptiveFormats", [])
+        if item.get("type", "").startswith("audio/") and item.get("url")
+    ]
+    if not audio:
+        return None
+    audio.sort(
+        key=lambda item: (
+            0 if int(item.get("bitrate", 0) or 0) <= 80000 else 1,
+            abs(int(item.get("bitrate", 0) or 0) - 64000),
+        )
+    )
+    return audio[0]
+
+
+async def _invidious_audio_url(link: str) -> str:
+    info = await _invidious_track(link)
+    selected = _select_audio_format(info)
+    return selected.get("url") if selected else None
+
+
 async def _download_with_invidious(link: str) -> str:
     try:
         info = await _invidious_track(link)
-        audio = [
-            item for item in info.get("adaptiveFormats", [])
-            if item.get("type", "").startswith("audio/") and item.get("url")
-        ]
-        if not audio:
+        selected = _select_audio_format(info)
+        if not selected:
             return None
         # Prefer a small, stable audio stream on Render's free instance.
         # High-bitrate streams make the initial download slow and can starve playback.
-        audio.sort(
-            key=lambda item: (
-                0 if int(item.get("bitrate", 0) or 0) <= 80000 else 1,
-                abs(int(item.get("bitrate", 0) or 0) - 64000),
-            )
-        )
+        audio_url = selected["url"]
         output_dir = os.path.join(os.getcwd(), "downloads")
         os.makedirs(output_dir, exist_ok=True)
         video_id = info["videoId"] if info.get("videoId") else info["id"]
@@ -183,7 +197,7 @@ async def _download_with_invidious(link: str) -> str:
 
         def fetch_audio():
             import requests
-            with requests.get(audio[0]["url"], stream=True, timeout=(10, 20)) as response:
+            with requests.get(audio_url, stream=True, timeout=(10, 20)) as response:
                 response.raise_for_status()
                 with open(source, "wb") as output:
                     for chunk in response.iter_content(1024 * 64):
@@ -400,3 +414,14 @@ class YouTubeAPI:
                 return None, False
         except Exception:
             return None, False
+
+    async def stream_url(self, link: str, videoid: Union[bool, str] = None):
+        if videoid:
+            link = self.base + link
+        if "&" in link:
+            link = link.split("&")[0]
+        try:
+            return await _invidious_audio_url(link)
+        except Exception as error:
+            LOGGER(__name__).warning(f"Direct audio stream failed: {error}")
+            return None
