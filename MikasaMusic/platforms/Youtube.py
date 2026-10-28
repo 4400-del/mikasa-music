@@ -167,7 +167,14 @@ async def _download_with_invidious(link: str) -> str:
         ]
         if not audio:
             return None
-        audio.sort(key=lambda item: int(item.get("bitrate", 0) or 0), reverse=True)
+        # Prefer a small, stable audio stream on Render's free instance.
+        # High-bitrate streams make the initial download slow and can starve playback.
+        audio.sort(
+            key=lambda item: (
+                0 if int(item.get("bitrate", 0) or 0) <= 80000 else 1,
+                abs(int(item.get("bitrate", 0) or 0) - 64000),
+            )
+        )
         output_dir = os.path.join(os.getcwd(), "downloads")
         os.makedirs(output_dir, exist_ok=True)
         video_id = info["videoId"] if info.get("videoId") else info["id"]
@@ -186,7 +193,7 @@ async def _download_with_invidious(link: str) -> str:
         await asyncio.to_thread(fetch_audio)
         await asyncio.to_thread(
             subprocess.run,
-            ["ffmpeg", "-y", "-loglevel", "error", "-i", source, "-vn", "-codec:a", "libmp3lame", "-b:a", "192k", target],
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", source, "-vn", "-codec:a", "libmp3lame", "-b:a", "96k", "-ar", "48000", target],
             check=True,
         )
         return target if os.path.exists(target) and os.path.getsize(target) else None
