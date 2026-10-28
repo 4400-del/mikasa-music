@@ -194,8 +194,11 @@ class Userbot(Client):
 
     async def start(self):
         LOGGER(__name__).info(f"Starting Assistants...")
-        
-        bot_username = await self.get_bot_username_from_token(config.BOT_TOKEN)
+
+        # Do not start a second temporary client with the same bot token here.
+        # Telegram rate-limits repeated auth.ImportBotAuthorization calls and
+        # the main bot then cannot log in after a Render restart.
+        bot_username = config.BOT_USERNAME.lstrip("@").strip()
         
         if config.STRING1:
             await self.one.start()
