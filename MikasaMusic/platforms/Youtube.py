@@ -26,6 +26,24 @@ _AUDIO_CACHE_TTL = 45
 TRACK_LOOKUP_TIMEOUT = 18
 DOWNLOAD_TIMEOUT = 90
 DOWNLOAD_ATTEMPT_TIMEOUT = DOWNLOAD_TIMEOUT / 2
+YTDLP_HTTP_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "Chrome/124.0 Safari/537.36"
+    ),
+}
+
+
+def _yt_dlp_network_options():
+    return {
+        "retries": 2,
+        "fragment_retries": 2,
+        "socket_timeout": 10,
+        "http_headers": YTDLP_HTTP_HEADERS,
+        "extractor_args": {
+            "youtube": {"player_client": ["android", "web"]},
+        },
+    }
 
 
 def _prepare_cookie_file():
@@ -51,6 +69,7 @@ async def _download_with_ytdlp(link: str, video: bool = False) -> str:
         "no_warnings": True,
         "restrictfilenames": True,
     }
+    options.update(_yt_dlp_network_options())
     cookie_file = _prepare_cookie_file()
     if cookie_file:
         options["cookiefile"] = cookie_file
@@ -117,6 +136,7 @@ async def _extract_track(link: str):
         "noplaylist": True,
         "skip_download": True,
     }
+    options.update(_yt_dlp_network_options())
     cookie_file = _prepare_cookie_file()
     if cookie_file:
         options["cookiefile"] = cookie_file
@@ -480,6 +500,7 @@ class YouTubeAPI:
                 "noplaylist": True,
                 "skip_download": True,
             }
+            options.update(_yt_dlp_network_options())
             cookie_file = _prepare_cookie_file()
             if cookie_file:
                 options["cookiefile"] = cookie_file
