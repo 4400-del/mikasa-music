@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import os
 import re
 from typing import Union
@@ -11,6 +12,20 @@ import aiohttp
 from MikasaMusic import LOGGER
 
 DOWNLOAD_DIR = os.path.join(os.getcwd(), "downloads")
+COOKIE_FILE = "/tmp/mikasa_youtube_cookies.txt"
+
+
+def _prepare_cookie_file():
+    encoded = os.environ.get("YOUTUBE_COOKIES_B64")
+    if not encoded:
+        return None
+    try:
+        with open(COOKIE_FILE, "wb") as cookie_file:
+            cookie_file.write(base64.b64decode(encoded))
+        return COOKIE_FILE
+    except Exception as error:
+        LOGGER(__name__).error(f"Could not prepare YouTube cookies: {error}")
+        return None
 
 
 async def _download_with_ytdlp(link: str, video: bool = False) -> str:
@@ -23,6 +38,9 @@ async def _download_with_ytdlp(link: str, video: bool = False) -> str:
         "no_warnings": True,
         "restrictfilenames": True,
     }
+    cookie_file = _prepare_cookie_file()
+    if cookie_file:
+        options["cookiefile"] = cookie_file
     if video:
         options["merge_output_format"] = "mp4"
     else:
