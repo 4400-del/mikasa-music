@@ -10,145 +10,54 @@ from MikasaMusic.utils.formatters import time_to_seconds
 import aiohttp
 from MikasaMusic import LOGGER
 
-API_URL = "https://YOUR_API_HOST"
-DOWNLOAD_DIR = "YOUR_API_KEY"
+DOWNLOAD_DIR = os.path.join(os.getcwd(), "downloads")
+
+
+async def _download_with_ytdlp(link: str, video: bool = False) -> str:
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    options = {
+        "format": "bestvideo+bestaudio/best" if video else "bestaudio/best",
+        "outtmpl": os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s"),
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "restrictfilenames": True,
+    }
+    if video:
+        options["merge_output_format"] = "mp4"
+    else:
+        options["postprocessors"] = [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }]
+
+    def fetch():
+        with yt_dlp.YoutubeDL(options) as ydl:
+            info = ydl.extract_info(link, download=True)
+            return ydl.prepare_filename(info)
+
+    output = await asyncio.to_thread(fetch)
+    if not video:
+        output = os.path.splitext(output)[0] + ".mp3"
+    elif not output.endswith(".mp4"):
+        output = os.path.splitext(output)[0] + ".mp4"
+    return output if os.path.exists(output) else None
 
 
 async def download_song(link: str) -> str:
-    video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
-
-    if not video_id or len(video_id) < 3:
-        return None
-
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp3")
-
-    if os.path.exists(file_path):
-        return file_path
-
     try:
-        async with aiohttp.ClientSession() as session:
-            params = {"url": video_id, "type": "audio"}
-
-            async with session.get(
-                f"{API_URL}/download",
-                params=params,
-                timeout=aiohttp.ClientTimeout(total=7)
-            ) as response:
-                if response.status != 200:
-                    return None
-
-                data = await response.json()
-                download_token = data.get("download_token")
-
-                if not download_token:
-                    return None
-
-                stream_url = f"{API_URL}/stream/{video_id}?type=audio&token={download_token}"
-
-                async with session.get(
-                    stream_url,
-                    timeout=aiohttp.ClientTimeout(total=300)
-                ) as file_response:
-                    if file_response.status == 302:
-                        redirect_url = file_response.headers.get('Location')
-                        if redirect_url:
-                            async with session.get(redirect_url) as final_response:
-                                if final_response.status != 200:
-                                    return None
-                                with open(file_path, "wb") as f:
-                                    async for chunk in final_response.content.iter_chunked(16384):
-                                        f.write(chunk)
-                                if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                                    return file_path
-                                else:
-                                    return None
-                    elif file_response.status == 200:
-                        with open(file_path, "wb") as f:
-                            async for chunk in file_response.content.iter_chunked(16384):
-                                f.write(chunk)
-                        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                            return file_path
-                        else:
-                            return None
-                    else:
-                        return None
-
-    except Exception:
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except:
-                pass
+        return await _download_with_ytdlp(link, video=False)
+    except Exception as e:
+        LOGGER(__name__).error(f"Audio download failed: {e}")
         return None
 
 
 async def download_video(link: str) -> str:
-    video_id = link.split('v=')[-1].split('&')[0] if 'v=' in link else link
-
-    if not video_id or len(video_id) < 3:
-        return None
-
-    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-    file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.mp4")
-
-    if os.path.exists(file_path):
-        return file_path
-
     try:
-        async with aiohttp.ClientSession() as session:
-            params = {"url": video_id, "type": "video"}
-
-            async with session.get(
-                f"{API_URL}/download",
-                params=params,
-                timeout=aiohttp.ClientTimeout(total=7)
-            ) as response:
-                if response.status != 200:
-                    return None
-
-                data = await response.json()
-                download_token = data.get("download_token")
-
-                if not download_token:
-                    return None
-
-                stream_url = f"{API_URL}/stream/{video_id}?type=video&token={download_token}"
-
-                async with session.get(
-                    stream_url,
-                    timeout=aiohttp.ClientTimeout(total=600)
-                ) as file_response:
-                    if file_response.status == 302:
-                        redirect_url = file_response.headers.get('Location')
-                        if redirect_url:
-                            async with session.get(redirect_url) as final_response:
-                                if final_response.status != 200:
-                                    return None
-                                with open(file_path, "wb") as f:
-                                    async for chunk in final_response.content.iter_chunked(16384):
-                                        f.write(chunk)
-                                if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                                    return file_path
-                                else:
-                                    return None
-                    elif file_response.status == 200:
-                        with open(file_path, "wb") as f:
-                            async for chunk in file_response.content.iter_chunked(16384):
-                                f.write(chunk)
-                        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
-                            return file_path
-                        else:
-                            return None
-                    else:
-                        return None
-
-    except Exception:
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except:
-                pass
+        return await _download_with_ytdlp(link, video=True)
+    except Exception as e:
+        LOGGER(__name__).error(f"Video download failed: {e}")
         return None
 
 
