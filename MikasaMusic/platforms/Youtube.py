@@ -51,11 +51,14 @@ def _prepare_cookie_file():
     if not encoded:
         return None
     try:
+        cookie_data = base64.b64decode(encoded, validate=True)
         with open(COOKIE_FILE, "wb") as cookie_file:
-            cookie_file.write(base64.b64decode(encoded))
+            cookie_file.write(cookie_data)
         return COOKIE_FILE
     except Exception as error:
-        LOGGER(__name__).error(f"Could not prepare YouTube cookies: {error}")
+        LOGGER(__name__).warning(
+            f"Ignoring invalid YOUTUBE_COOKIES_B64; continuing without cookies: {error}"
+        )
         return None
 
 
@@ -484,13 +487,10 @@ class YouTubeAPI:
         cached = _AUDIO_CACHE.get(link)
         if cached and time.monotonic() - cached[0] < _AUDIO_CACHE_TTL:
             return cached[1]
-        try:
-            audio_url = await asyncio.wait_for(_invidious_audio_url(link), timeout=10)
-            if audio_url:
-                _AUDIO_CACHE[link] = (time.monotonic(), audio_url)
-                return audio_url
-        except Exception as error:
-            LOGGER(__name__).warning(f"Invidious direct audio failed: {error}")
+        # Do not pass Invidious' proxied videoplayback URLs to PyTgCalls.
+        # Those URLs frequently return a valid-looking response but PyTgCalls
+        # rejects them with "No audio source found". Resolve a native YouTube
+        # audio URL with yt-dlp instead; Invidious remains available for metadata.
 
         def resolve_with_ytdlp():
             options = {
