@@ -2,6 +2,7 @@ import asyncio
 import base64
 import os
 import re
+import subprocess
 from typing import Union
 import yt_dlp
 from pyrogram.enums import MessageEntityType
@@ -13,6 +14,10 @@ from MikasaMusic import LOGGER
 
 DOWNLOAD_DIR = os.path.join(os.getcwd(), "downloads")
 COOKIE_FILE = "/tmp/mikasa_youtube_cookies.txt"
+INVIDIOUS_INSTANCES = [
+    "https://yt.chocolatemoo53.com",
+    "https://inv.nadeko.net",
+]
 
 
 def _prepare_cookie_file():
@@ -65,10 +70,12 @@ async def _download_with_ytdlp(link: str, video: bool = False) -> str:
 
 async def download_song(link: str) -> str:
     try:
-        return await _download_with_ytdlp(link, video=False)
+        downloaded = await _download_with_ytdlp(link, video=False)
+        if downloaded:
+            return downloaded
     except Exception as e:
         LOGGER(__name__).error(f"Audio download failed: {e}")
-        return None
+    return await _download_with_invidious(link)
 
 
 async def download_video(link: str) -> str:
@@ -101,7 +108,85 @@ async def _extract_track(link: str):
                 return next((entry for entry in (info.get("entries") or []) if entry), None)
             return info
 
-    return await asyncio.to_thread(fetch)
+    try:
+        return await asyncio.to_thread(fetch)
+    except Exception as error:
+        LOGGER(__name__).warning(f"yt-dlp metadata failed, trying Invidious: {error}")
+        return await _invidious_track(link)
+
+
+async def _invidious_json(path):
+    def request_json():
+        import requests
+        last_error = None
+        for instance in INVIDIOUS_INSTANCES:
+            try:
+                response = requests.get(instance + path, timeout=20)
+                response.raise_for_status()
+                return response.json(), instance
+            except Exception as error:
+                last_error = error
+        raise RuntimeError(f"All Invidious instances failed: {last_error}")
+
+    return await asyncio.to_thread(request_json)
+
+
+async def _invidious_track(link: str):
+    video_match = re.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{6,})", link)
+    if video_match:
+        info, _ = await _invidious_json(f"/api/v1/videos/{video_match.group(1)}?local=1")
+        return info
+    from urllib.parse import quote
+    results, _ = await _invidious_json(
+        f"/api/v1/search?q={quote(link)}&type=video"
+    )
+    if not results:
+        raise ValueError("No YouTube result found")
+    result = results[0]
+    return {
+        "id": result["videoId"],
+        "title": result.get("title"),
+        "duration": result.get("lengthSeconds"),
+        "thumbnail": (result.get("videoThumbnails") or [{}])[0].get("url"),
+        "webpage_url": f"https://www.youtube.com/watch?v={result['videoId']}",
+    }
+
+
+async def _download_with_invidious(link: str) -> str:
+    try:
+        info = await _invidious_track(link)
+        audio = [
+            item for item in info.get("adaptiveFormats", [])
+            if item.get("type", "").startswith("audio/") and item.get("url")
+        ]
+        if not audio:
+            return None
+        audio.sort(key=lambda item: int(item.get("bitrate", 0) or 0), reverse=True)
+        output_dir = os.path.join(os.getcwd(), "downloads")
+        os.makedirs(output_dir, exist_ok=True)
+        video_id = info["videoId"] if info.get("videoId") else info["id"]
+        source = os.path.join(output_dir, f"{video_id}.m4a")
+        target = os.path.join(output_dir, f"{video_id}.mp3")
+
+        def fetch_audio():
+            import requests
+            with requests.get(audio[0]["url"], stream=True, timeout=120) as response:
+                response.raise_for_status()
+                with open(source, "wb") as output:
+                    for chunk in response.iter_content(1024 * 64):
+                        if chunk:
+                            output.write(chunk)
+
+        await asyncio.to_thread(fetch_audio)
+        await asyncio.to_thread(
+            subprocess.run,
+            ["ffmpeg", "-y", "-loglevel", "error", "-i", source, "-vn", "-codec:a", "libmp3lame", "-b:a", "192k", target],
+            check=True,
+        )
+        return target if os.path.exists(target) and os.path.getsize(target) else None
+    except Exception as error:
+        LOGGER(__name__).error(f"Invidious audio fallback failed: {error}")
+        return None
 
 
 def _format_duration(seconds):
