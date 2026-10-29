@@ -328,6 +328,8 @@ async def _download_with_invidious(link: str) -> str:
 def _format_duration(seconds):
     if not seconds:
         return None
+    if isinstance(seconds, str) and ":" in seconds:
+        return seconds
     seconds = int(seconds)
     return f"{seconds // 60}:{seconds % 60:02d}"
 
