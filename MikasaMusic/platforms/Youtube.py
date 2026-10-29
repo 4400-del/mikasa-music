@@ -14,6 +14,8 @@ import aiohttp
 from MikasaMusic import LOGGER
 
 DOWNLOAD_DIR = os.path.join(os.getcwd(), "downloads")
+SHRUTI_API_URL = os.getenv("SHRUTI_API_URL", "https://api.shrutibots.in").rstrip("/")
+SHRUTI_API_KEY = os.getenv("SHRUTI_API_KEY")
 COOKIE_FILE = "/tmp/mikasa_youtube_cookies.txt"
 INVIDIOUS_INSTANCES = [
     "https://yt.chocolatemoo53.com",
@@ -104,25 +106,54 @@ async def _download_with_ytdlp(link: str, video: bool = False) -> str:
 
 
 async def download_song(link: str) -> str:
+    return await _download_with_shruti_api(link, media_type="audio")
+
+
+async def _download_with_shruti_api(link: str, media_type: str) -> str:
+    """Download media through ShrutiAPI so Render never extracts YouTube itself."""
+    if not SHRUTI_API_KEY:
+        LOGGER(__name__).error("SHRUTI_API_KEY is not configured")
+        return None
+    video_id = _video_id(link)
+    if not video_id:
+        LOGGER(__name__).error("Could not determine YouTube video ID")
+        return None
+    os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+    extension = "mp3" if media_type == "audio" else "mp4"
+    file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.{extension}")
+    if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+        return file_path
     try:
-        downloaded = await asyncio.wait_for(
-            _download_with_ytdlp(link, video=False), timeout=DOWNLOAD_TIMEOUT
-        )
-        if downloaded:
-            return downloaded
+        params = {"url": video_id, "type": media_type, "api_key": SHRUTI_API_KEY}
+        timeout = aiohttp.ClientTimeout(total=300 if media_type == "audio" else 600)
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{SHRUTI_API_URL}/download", params=params, timeout=timeout) as response:
+                if response.status != 200:
+                    body = (await response.text())[:300]
+                    LOGGER(__name__).error(f"ShrutiAPI {media_type} download failed ({response.status}): {body}")
+                    return None
+                with open(file_path, "wb") as output:
+                    async for chunk in response.content.iter_chunked(64 * 1024):
+                        output.write(chunk)
+        return file_path if os.path.exists(file_path) and os.path.getsize(file_path) > 0 else None
     except Exception as e:
-        LOGGER(__name__).error(f"YouTube audio download failed: {e}")
-    return None
+        LOGGER(__name__).error(f"ShrutiAPI {media_type} download error: {e}")
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+        except OSError:
+            pass
+        return None
 
 
 async def download_video(link: str) -> str:
-    try:
-        return await asyncio.wait_for(
-            _download_with_ytdlp(link, video=True), timeout=DOWNLOAD_TIMEOUT
-        )
-    except Exception as e:
-        LOGGER(__name__).error(f"Video download failed: {e}")
-        return None
+    return await _download_with_shruti_api(link, media_type="video")
+
+
+def _video_id(link: str) -> str:
+    value = str(link or "").strip()
+    match = re.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{6,})", value)
+    return match.group(1) if match else value if re.fullmatch(r"[A-Za-z0-9_-]{6,}", value) else None
 
 
 async def _extract_track(link: str):
@@ -145,31 +176,21 @@ async def _extract_track(link: str):
             return info
 
     try:
-        # Use native YouTube extraction first. Invidious search/video responses
-        # are intermittently unavailable from Render and can return stale data.
-        info = await asyncio.wait_for(
-            asyncio.to_thread(fetch), timeout=TRACK_LOOKUP_TIMEOUT * 0.65
-        )
+        return await asyncio.wait_for(_legacy_search_track(link), timeout=8)
+    except Exception as search_error:
+        LOGGER(__name__).warning(f"py_yt metadata failed, trying yt-dlp: {search_error}")
+    try:
+        info = await asyncio.wait_for(asyncio.to_thread(fetch), timeout=TRACK_LOOKUP_TIMEOUT * 0.65)
         if info and info.get("id"):
             return info
         raise RuntimeError("yt-dlp returned no track")
     except Exception as error:
-        LOGGER(__name__).warning(f"yt-dlp metadata failed, trying YouTube search: {error}")
+        LOGGER(__name__).warning(f"yt-dlp metadata failed, trying Invidious: {error}")
         try:
-            return await asyncio.wait_for(
-                _legacy_search_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.25
-            )
-        except Exception as search_error:
-            LOGGER(__name__).warning(f"YouTube search failed, trying Invidious: {search_error}")
-            try:
-                return await asyncio.wait_for(
-                    _invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.10
-                )
-            except Exception as fallback_error:
-                LOGGER(__name__).error(
-                    f"Track details lookup failed after timeout: {fallback_error}"
-                )
-                raise RuntimeError("Track details could not be fetched in time") from fallback_error
+            return await asyncio.wait_for(_invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.25)
+        except Exception as fallback_error:
+            LOGGER(__name__).error(f"Track details lookup failed after timeout: {fallback_error}")
+            raise RuntimeError("Track details could not be fetched in time") from fallback_error
 
 
 async def _legacy_search_track(link: str):
