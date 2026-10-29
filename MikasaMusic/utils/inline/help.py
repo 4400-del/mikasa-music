@@ -1,6 +1,28 @@
 from typing import Union
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton as _InlineKeyboardButton, InlineKeyboardMarkup
 from MikasaMusic import app
+from .buttons import styled_button
+
+
+def InlineKeyboardButton(*args, **kwargs):
+    """Keep legacy help layouts while applying grouped Bot API button styles."""
+    callback_data = str(kwargs.get("callback_data", ""))
+    style = kwargs.pop("style", None)
+    if callback_data.startswith("help_callback hb"):
+        try:
+            number = int(callback_data.rsplit("hb", 1)[1])
+            style = "primary" if number % 10 in (1, 2, 3, 4) else "success" if number % 10 in (5, 6, 7) else "danger"
+        except (ValueError, IndexError):
+            style = "primary"
+    elif callback_data.startswith("help_page_"):
+        style = "primary"
+    elif callback_data in {"close", "settingsback_helper"}:
+        style = "danger"
+    if args:
+        if style:
+            return styled_button(text=args[0], style=style, **kwargs)
+        return _InlineKeyboardButton(*args, **kwargs)
+    return styled_button(style=style, **kwargs)
 
 def help_pannel_page1(_, START: Union[bool, int] = None):
     return InlineKeyboardMarkup(

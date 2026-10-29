@@ -42,6 +42,7 @@ from MikasaMusic.utils.database import (
 from MikasaMusic.utils.decorators.language import languageCB
 from MikasaMusic.utils.formatters import seconds_to_min
 from MikasaMusic.utils.inline import close_markup, stream_markup, stream_markup_timer
+from MikasaMusic.utils.inline.admin import admin_back_markup, admin_panel_markup
 from MikasaMusic.utils.inline.help import help_pannel_page1, help_pannel_page2, help_pannel_page3, help_pannel_page4
 from MikasaMusic.utils.stream.autoclear import auto_clean
 from MikasaMusic.utils.thumbnails import gen_thumb
@@ -62,6 +63,41 @@ checker = {}
 upvoters = {}
 
 from config import SUPPORT_GROUP
+
+ADMIN_BROADCAST_TEXT = {
+    "admin_broadcast_user": "📢 <b>ᴜsᴇʀ ʙʀᴏᴀᴅᴄᴀsᴛ</b>\n\nReply to a message and send <code>/broadcast -user</code>. This sends it to users who have started the bot.",
+    "admin_broadcast_chat": "👥 <b>ɢʀᴏᴜᴘ ʙʀᴏᴀᴅᴄᴀsᴛ</b>\n\nReply to a message and send <code>/broadcast</code>. This sends it to all served groups and channels.",
+    "admin_broadcast_all": "🌐 <b>ᴀʟʟ ᴜsᴇʀs + ɢʀᴏᴜᴘs</b>\n\nUse <code>/broadcast -user</code> for users and <code>/broadcast</code> for groups. Only authorized sudo users can run broadcasts.",
+    "admin_broadcast_stats": "📊 <b>ʙᴏᴛ sᴛᴀᴛs</b>\n\nUse <code>/stats</code> to review served users, served chats, assistants, and system information.",
+    "admin_reminder_info": "⏱ <b>ʀᴇᴍɪɴᴅᴇʀ ᴍᴏᴅᴇ</b>\n\nThe bot sends a random music reminder to served chats every three hours. The reminder uses the bot client only and does not change assistant sessions.",
+}
+
+
+@app.on_callback_query(filters.regex("^admin_panel$") & ~BANNED_USERS)
+async def admin_panel_callback(client, callback_query: CallbackQuery):
+    if callback_query.from_user.id not in SUDOERS:
+        return await callback_query.answer("🔒 ᴛʜɪs ᴘᴀɴᴇʟ ɪs ʟɪᴍɪᴛᴇᴅ ᴛᴏ sᴜᴅᴏ ᴜsᴇʀs.", show_alert=True)
+    await callback_query.answer()
+    await callback_query.message.edit_caption(
+        caption=("🛠 <b>ᴍɪᴋᴀsᴀ ᴍᴜsɪᴄ — ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ</b>\n\n"
+                 "Manage global broadcasts and bot operations from one clean menu.\n"
+                 "┣ 📢 ᴜsᴇʀ ʙʀᴏᴀᴅᴄᴀsᴛ\n┣ 👥 ɢʀᴏᴜᴘ ʙʀᴏᴀᴅᴄᴀsᴛ\n"
+                 "┣ 🌐 ᴀʟʟ ᴜsᴇʀs + ɢʀᴏᴜᴘs\n┗ ⏱ ʀᴇᴍɪɴᴅᴇʀ sᴇᴛᴛɪɴɢs"),
+        reply_markup=admin_panel_markup(),
+    )
+
+
+@app.on_callback_query(filters.regex("^admin_(broadcast_user|broadcast_chat|broadcast_all|broadcast_stats|reminder_info)$") & ~BANNED_USERS)
+async def admin_panel_detail_callback(client, callback_query: CallbackQuery):
+    if callback_query.from_user.id not in SUDOERS:
+        return await callback_query.answer("🔒 ᴀᴅᴍɪɴ ᴀᴄᴄᴇss ʀᴇǫᴜɪʀᴇᴅ.", show_alert=True)
+    await callback_query.answer()
+    await callback_query.message.edit_caption(
+        caption=ADMIN_BROADCAST_TEXT[callback_query.data],
+        reply_markup=admin_back_markup(),
+    )
+
+
 @app.on_callback_query(filters.regex("help_page_1"))
 async def show_help_page1(client, callback_query: CallbackQuery):
     try:

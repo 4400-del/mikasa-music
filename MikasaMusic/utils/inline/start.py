@@ -1,98 +1,69 @@
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
-# Location: Supaul, Bihar
-#
-# All rights reserved.
-#
-# This code is the intellectual property of MIKASA MUSIC.
-# You are not allowed to copy, modify, redistribute, or use this
-# code for commercial or personal projects without explicit permission.
-#
-# Allowed:
-# - Forking for personal learning
-# - Submitting improvements via pull requests
-#
-# Not Allowed:
-# - Claiming this code as your own
-# - Re-uploading without credit or permission
-# - Selling or using commercially
-#
-# Contact for permissions:
-# Email: YOUR_EMAIL@example.com
 
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardMarkup
 import config
 from MikasaMusic import app
+from .buttons import styled_button
+
 
 def start_panel(_):
-    buttons = [
+    return [
         [
-            InlineKeyboardButton(
-                text=_["S_B_1"], url=f"https://t.me/{app.username}?startgroup=true"
-            ),
-            InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_GROUP),
+            styled_button(text=_["S_B_1"], url=f"https://t.me/{app.username}?startgroup=true", style="success"),
+            styled_button(text=_["S_B_2"], url=config.SUPPORT_GROUP, style="primary"),
         ],
         [
-            InlineKeyboardButton(text=_["S_B_5"], user_id=config.OWNER_ID),
-            InlineKeyboardButton(text=_["S_B_4"], callback_data="help_page_1")  # About button
+            styled_button(text=_["S_B_5"], user_id=config.OWNER_ID, style="success"),
+            styled_button(text=_["S_B_4"], callback_data="help_page_1", style="success"),
         ],
     ]
-    return buttons
+
 
 def private_panel(_):
-    buttons = [
+    return [
         [
-            InlineKeyboardButton(text=_["S_B_3"], url=f"https://t.me/{app.username}?startgroup=true")
+            styled_button(text=_["S_B_3"], url=f"https://t.me/{app.username}?startgroup=true", style="success"),
         ],
         [
-            InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_GROUP),
-            InlineKeyboardButton(text=_["S_B_6"], url=config.SUPPORT_CHANNEL)
+            styled_button(text=_["S_B_2"], url=config.SUPPORT_GROUP, style="primary"),
+            styled_button(text=_["S_B_6"], url=config.SUPPORT_CHANNEL, style="primary"),
         ],
         [
-            InlineKeyboardButton(text=_["S_H_4"], url=config.DONATE),
-            InlineKeyboardButton(text=_["S_B_5"], user_id=config.OWNER_ID),
+            styled_button(text=_["S_H_4"], url=config.DONATE, style="danger"),
+            styled_button(text=_["S_B_5"], user_id=config.OWNER_ID, style="danger"),
         ],
         [
-            InlineKeyboardButton(text=_["S_B_4"], callback_data="help_page_1")
+            styled_button(text=_["S_B_4"], callback_data="help_page_1", style="primary"),
+        ],
+        [
+            styled_button(text="🛠 ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ", callback_data="admin_panel", style="danger"),
         ],
     ]
-    return buttons
+
 
 def about_panel(_):
-    buttons = [
+    return [
         [
-            InlineKeyboardButton(text=_["S_B_6"], url=config.SUPPORT_CHANNEL),
-            InlineKeyboardButton(text=_["S_B_2"], url=config.SUPPORT_GROUP),
+            styled_button(text=_["S_B_6"], url=config.SUPPORT_CHANNEL, style="primary"),
+            styled_button(text=_["S_B_2"], url=config.SUPPORT_GROUP, style="primary"),
         ],
         [
-            InlineKeyboardButton(text=_["BACK_BUTTON"], callback_data="settingsback_helper")
-        ]
+            styled_button(text=_["BACK_BUTTON"], callback_data="settingsback_helper", style="danger"),
+        ],
     ]
-    return buttons
+
 
 def owner_panel(_):
-    buttons = [
+    return [
         [
-            InlineKeyboardButton(text=_["S_H_1"], url=config.INSTAGRAM),
-            InlineKeyboardButton(text=_["S_H_2"], url=config.YOUTUBE),
+            styled_button(text=_["S_H_1"], url=config.INSTAGRAM, style="primary"),
+            styled_button(text=_["S_H_2"], url=config.YOUTUBE, style="primary"),
         ],
         [
-            InlineKeyboardButton(text=_["S_H_3"], url=config.GITHUB),
-            InlineKeyboardButton(text=_["S_H_4"], url=config.DONATE),
+            styled_button(text=_["S_H_3"], url=config.GITHUB, style="success"),
+            styled_button(text=_["S_H_4"], url=config.DONATE, style="success"),
         ],
         [
-            InlineKeyboardButton(text=_["BACK_BUTTON"], callback_data="settingsback_helper")
-        ]
+            styled_button(text=_["BACK_BUTTON"], callback_data="settingsback_helper", style="danger"),
+        ],
     ]
-    return buttons
-
-
-# ©️ Copyright Reserved - @MIKASA MUSIC  MIKASA MUSIC
-
-# ===========================================
-# ©️ 2025 MIKASA MUSIC (aka @MIKASA MUSIC)
-# 🔗 GitHub : https://github.com/YOUR_GITHUB_USERNAME/MikasaMusic
-# 📢 Telegram Channel : https://t.me/YOUR_SUPPORT_CHANNEL
-# ===========================================
-
-
-# ❤️ Love From MIKASA MUSIC
