@@ -531,10 +531,16 @@ class YouTubeAPI:
         cached = _AUDIO_CACHE.get(link)
         if cached and time.monotonic() - cached[0] < _AUDIO_CACHE_TTL:
             return cached[1]
-        # Do not pass Invidious' proxied videoplayback URLs to PyTgCalls.
-        # Those URLs frequently return a valid-looking response but PyTgCalls
-        # rejects them with "No audio source found". Resolve a native YouTube
-        # audio URL with yt-dlp instead; Invidious remains available for metadata.
+        video_id = _video_id(link)
+        if SHRUTI_API_KEY and video_id:
+            from urllib.parse import urlencode
+            stream_url = (
+                f"{SHRUTI_API_URL}/stream/{video_id}?"
+                + urlencode({"type": "audio", "api_key": SHRUTI_API_KEY})
+            )
+            _AUDIO_CACHE[link] = (time.monotonic(), stream_url)
+            return stream_url
+        # If ShrutiAPI streaming is unavailable, try a native YouTube URL.
 
         def resolve_with_ytdlp():
             options = {
