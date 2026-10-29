@@ -41,7 +41,12 @@ def _yt_dlp_network_options():
         "socket_timeout": 10,
         "http_headers": YTDLP_HTTP_HEADERS,
         "extractor_args": {
-            "youtube": {"player_client": ["android", "web"]},
+            # Render datacenter IPs are frequently challenged by the default
+            # web client. These public-player clients avoid browser-cookie
+            # requirements for ordinary, non-age-restricted videos.
+            "youtube": {
+                "player_client": ["android_vr", "tv", "web_embedded"]
+            },
         },
     }
 
