@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 from pyrogram import filters
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from MikasaMusic import app
@@ -55,8 +56,8 @@ async def userdel(client, message: Message, _):
 async def delete_all_sudoers(client, message: Message, _):
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("✅ Yes, Delete All", callback_data="confirm_delete_all_sudo"),
-            InlineKeyboardButton("❌ Cancel", callback_data="cancel_delete_all_sudo")
+            styled_button("✅ Yes, Delete All", callback_data="confirm_delete_all_sudo"),
+            styled_button("❌ Cancel", callback_data="cancel_delete_all_sudo")
         ]
     ])
     
@@ -78,7 +79,7 @@ async def delete_all_sudoers(client, message: Message, _):
 async def sudoers_list(client, message: Message, _):
     if not can_use_owner_commands(message.from_user.id) and message.from_user.id not in SUDOERS:
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔒 View Sudolist", callback_data="view_sudolist_unauthorized")]
+            [styled_button("🔒 View Sudolist", callback_data="view_sudolist_unauthorized")]
         ])
         await message.reply_text(
             "🔒 <b>Access Restricted</b>\n\n"

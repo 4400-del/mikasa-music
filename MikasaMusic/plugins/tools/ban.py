@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -429,8 +430,8 @@ async def pin(_, message: Message):
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
-                        InlineKeyboardButton(text="ʏᴇs", callback_data="unpin_yes"),
-                        InlineKeyboardButton(text="ɴᴏ", callback_data="unpin_no"),
+                        styled_button(text="ʏᴇs", callback_data="unpin_yes"),
+                        styled_button(text="ɴᴏ", callback_data="unpin_no"),
                     ],
                 ]
             ),

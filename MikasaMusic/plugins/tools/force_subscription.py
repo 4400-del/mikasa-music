@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -166,7 +167,7 @@ async def check_forcesub(client: Client, message: Message):
         await message.reply_photo(
             photo="https://envs.sh/Tn_.jpg",
             caption=(f"**👋 ʜᴇʟʟᴏ {message.from_user.mention},**\n\n**ʏᴏᴜ ɴᴇᴇᴅ ᴛᴏ ᴊᴏɪɴ ᴛʜᴇ [ᴄʜᴀɴɴᴇʟ]({channel_url}) ᴛᴏ sᴇɴᴅ ᴍᴇssᴀɢᴇs ɪɴ ᴛʜɪs ɢʀᴏᴜᴘ.**"),
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("๏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ๏", url=channel_url)]]),
+            reply_markup=InlineKeyboardMarkup([[styled_button("๏ ᴊᴏɪɴ ᴄʜᴀɴɴᴇʟ ๏", url=channel_url)]]),
         )
         await asyncio.sleep(1)
     except ChatAdminRequired:

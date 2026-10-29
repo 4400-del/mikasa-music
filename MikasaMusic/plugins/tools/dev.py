@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 import os
 import re
 import subprocess
@@ -77,7 +78,7 @@ async def executor(client: app, message: Message):
         keyboard = InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton(
+                    styled_button(
                         text="⏳",
                         callback_data=f"runtime {t2-t1} Seconds",
                     )
@@ -97,11 +98,11 @@ async def executor(client: app, message: Message):
         keyboard = InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton(
+                    styled_button(
                         text="⏳",
                         callback_data=f"runtime {round(t2-t1, 3)} Seconds",
                     ),
-                    InlineKeyboardButton(
+                    styled_button(
                         text="🗑",
                         callback_data=f"forceclose abc|{message.from_user.id}",
                     ),

@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -356,10 +357,10 @@ async def authusers_mar(client, CallbackQuery, _):
             upl = InlineKeyboardMarkup(
                 [
                     [
-                        InlineKeyboardButton(
+                        styled_button(
                             text=_["BACK_BUTTON"], callback_data=f"AU"
                         ),
-                        InlineKeyboardButton(
+                        styled_button(
                             text=_["CLOSE_BUTTON"],
                             callback_data=f"close",
                         ),

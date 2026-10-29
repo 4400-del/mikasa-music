@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -60,7 +61,7 @@ async def join_watcher(_, message):
                 
                 buttons = []
                 if message.from_user.id:
-                    buttons.append([InlineKeyboardButton("Added By", 
+                    buttons.append([styled_button("Added By",
                                     url=f"tg://openmessage?user_id={message.from_user.id}")])
                 
                 await app.send_photo(

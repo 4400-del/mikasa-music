@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -121,7 +122,7 @@ async def userinfo(_, message):
 
         btn = [
             [
-                types.InlineKeyboardButton(
+                types.styled_button(
                     "🌐 ᴠɪᴇᴡ ᴘʀᴏғɪʟᴇ",
                     url=f"https://t.me/{target.username}" if target.username else "https://t.me/",
                 )

@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -124,11 +125,11 @@ async def fork_repo_callback(client, query):
         reply_markup=InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton("🚀 Fᴏʀᴋ Rᴇᴘᴏ", url="https://github.com/YOUR_GITHUB_USERNAME/MikasaMusic/fork"),
-                    InlineKeyboardButton("⚡ Hᴇʀᴏᴋᴜ Dᴇᴘʟᴏʏ", url="https://dashboard.heroku.com/new?template=https://github.com/YOUR_GITHUB_USERNAME/MikasaMusic")
+                    styled_button("🚀 Fᴏʀᴋ Rᴇᴘᴏ", url="https://github.com/YOUR_GITHUB_USERNAME/MikasaMusic/fork"),
+                    styled_button("⚡ Hᴇʀᴏᴋᴜ Dᴇᴘʟᴏʏ", url="https://dashboard.heroku.com/new?template=https://github.com/YOUR_GITHUB_USERNAME/MikasaMusic")
                 ],
                 [
-                    InlineKeyboardButton("🔙 Bᴀᴄᴋ", callback_data="settingsback_helper")
+                    styled_button("🔙 Bᴀᴄᴋ", callback_data="settingsback_helper")
                 ]
             ]
         )
@@ -367,7 +368,7 @@ async def del_back_playlist(client, CallbackQuery, _):
             upl = InlineKeyboardMarkup(
                 [
                     [
-                        InlineKeyboardButton(
+                        styled_button(
                             text=f"👍 {get_upvotes}",
                             callback_data=f"ADMIN  UpVote|{chat_id}_{counter}",
                         )

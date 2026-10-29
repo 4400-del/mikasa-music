@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -25,17 +26,17 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 def stats_buttons(_, status):
     not_sudo = [
-        InlineKeyboardButton(
+        styled_button(
             text=_["SA_B_1"],
             callback_data="TopOverall",
         )
     ]
     sudo = [
-        InlineKeyboardButton(
+        styled_button(
             text=_["SA_B_2"],
             callback_data="bot_stats_sudo",
         ),
-        InlineKeyboardButton(
+        styled_button(
             text=_["SA_B_3"],
             callback_data="TopOverall",
         ),
@@ -44,7 +45,7 @@ def stats_buttons(_, status):
         [
             sudo if status else not_sudo,
             [
-                InlineKeyboardButton(
+                styled_button(
                     text=_["CLOSE_BUTTON"],
                     callback_data="close",
                 ),
@@ -58,11 +59,11 @@ def back_stats_buttons(_):
     upl = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
+                styled_button(
                     text=_["BACK_BUTTON"],
                     callback_data="stats_back",
                 ),
-                InlineKeyboardButton(
+                styled_button(
                     text=_["CLOSE_BUTTON"],
                     callback_data="close",
                 ),

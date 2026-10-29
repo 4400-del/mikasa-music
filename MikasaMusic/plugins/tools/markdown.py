@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -33,7 +34,7 @@ async def mkdwnhelp(_, m: Message):
     keyb = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
+                styled_button(
                     text="Click Here!",
                     url=f"http://t.me/{app.username}?start=mkdwn_help",
                 )

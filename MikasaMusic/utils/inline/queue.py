@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -35,11 +36,11 @@ def queue_markup(
 ):
     not_dur = [
         [
-            InlineKeyboardButton(
+            styled_button(
                 text=_["QU_B_1"],
                 callback_data=f"GetQueued {CPLAY}|{videoid}",
             ),
-            InlineKeyboardButton(
+            styled_button(
                 text=_["CLOSE_BUTTON"],
                 callback_data="close",
             ),
@@ -47,17 +48,17 @@ def queue_markup(
     ]
     dur = [
         [
-            InlineKeyboardButton(
+            styled_button(
                 text=_["QU_B_2"].format(played, dur),
                 callback_data="GetTimer",
             )
         ],
         [
-            InlineKeyboardButton(
+            styled_button(
                 text=_["QU_B_1"],
                 callback_data=f"GetQueued {CPLAY}|{videoid}",
             ),
-            InlineKeyboardButton(
+            styled_button(
                 text=_["CLOSE_BUTTON"],
                 callback_data="close",
             ),
@@ -71,11 +72,11 @@ def queue_back_markup(_, CPLAY):
     upl = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton(
+                styled_button(
                     text=_["BACK_BUTTON"],
                     callback_data=f"queue_back_timer {CPLAY}",
                 ),
-                InlineKeyboardButton(
+                styled_button(
                     text=_["CLOSE_BUTTON"],
                     callback_data="close",
                 ),
@@ -88,7 +89,7 @@ def queue_back_markup(_, CPLAY):
 def aq_markup(_, chat_id):
     buttons = [
         [
-            InlineKeyboardButton(
+            styled_button(
                     text=_["CLOSE_BUTTON"],
                     callback_data="close",
             ),

@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -58,7 +59,7 @@ def PlayWrapper(command):
             upl = InlineKeyboardMarkup(
                 [
                     [
-                        InlineKeyboardButton(
+                        styled_button(
                             text="ʜᴏᴡ ᴛᴏ ғɪx ?",
                             callback_data="AnonymousAdmin",
                         ),

@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -56,7 +57,7 @@ async def inline_query_handler(client, query):
             buttons = InlineKeyboardMarkup(
                 [
                     [
-                        InlineKeyboardButton(
+                        styled_button(
                             text="ʏᴏᴜᴛᴜʙᴇ 🎄",
                             url=link,
                         )

@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -3330,8 +3331,8 @@ async def send_repo(_, message: Message):
         reply_markup=InlineKeyboardMarkup(
             [
                 [
-                    InlineKeyboardButton("📂 Management Bot", url="https://github.com/YOUR_GITHUB_USERNAME/MikasaMusic"),
-                    InlineKeyboardButton("📂 Music Bot", url="https://github.com/YOUR_GITHUB_USERNAME/ShrutixMusic")
+                    styled_button("📂 Management Bot", url="https://github.com/YOUR_GITHUB_USERNAME/MikasaMusic"),
+                    styled_button("📂 Music Bot", url="https://github.com/YOUR_GITHUB_USERNAME/ShrutixMusic")
                 ]
             ]
         ),

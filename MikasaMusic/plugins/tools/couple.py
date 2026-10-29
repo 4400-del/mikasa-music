@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 from datetime import datetime, timedelta
 import pytz
 import os
@@ -133,7 +134,7 @@ Nᴇxᴛ ᴄᴏᴜᴘʟᴇs ᴡɪʟʟ ʙᴇ sᴇʟᴇᴄᴛᴇᴅ ᴏɴ {tomorro
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [
-                            InlineKeyboardButton(
+                            styled_button(
                                 text="Aᴅᴅ ᴍᴇ 🌋",
                                 url=f"https://t.me/{app.username}?startgroup=true",
                             )
@@ -170,7 +171,7 @@ Nᴇxᴛ ᴄᴏᴜᴘʟᴇs ᴡɪʟʟ ʙᴇ sᴇʟᴇᴄᴛᴇᴅ ᴏɴ {tomorro
                 reply_markup=InlineKeyboardMarkup(
                     [
                         [
-                            InlineKeyboardButton(
+                            styled_button(
                                 text="Aᴅᴅ ᴍᴇ🌋",
                                 url=f"https://t.me/{app.username}?startgroup=true",
                             )

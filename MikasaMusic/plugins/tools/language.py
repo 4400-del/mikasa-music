@@ -1,3 +1,4 @@
+from MikasaMusic.utils.inline.buttons import styled_button
 # Copyright (c) 2025 MIKASA MUSIC <MIKASA MUSIC>
 # Location: Supaul, Bihar
 #
@@ -36,7 +37,7 @@ def lanuages_keyboard(_):
     keyboard.add(
         *[
             (
-                InlineKeyboardButton(
+                styled_button(
                     text=languages_present[i],
                     callback_data=f"languages:{i}",
                 )
@@ -45,11 +46,11 @@ def lanuages_keyboard(_):
         ]
     )
     keyboard.row(
-        InlineKeyboardButton(
+        styled_button(
             text=_["BACK_BUTTON"],
             callback_data=f"settingsback_helper",
         ),
-        InlineKeyboardButton(text=_["CLOSE_BUTTON"], callback_data=f"close"),
+        styled_button(text=_["CLOSE_BUTTON"], callback_data=f"close"),
     )
     return keyboard
 
