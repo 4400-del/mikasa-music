@@ -5,16 +5,23 @@ import os
 
 
 class HealthHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if self.path in ("/", "/health", "/healthz"):
-            body = json.dumps({"status": "ok", "service": "mikasa-music"}).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+    def _send_health(self, include_body=True):
+        if self.path not in ("/", "/health", "/healthz"):
+            self.send_error(404, "Not found")
             return
-        self.send_error(404, "Not found")
+        body = json.dumps({"status": "ok", "service": "mikasa-music"}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        if include_body:
+            self.wfile.write(body)
+
+    def do_GET(self):
+        self._send_health(include_body=True)
+
+    def do_HEAD(self):
+        self._send_health(include_body=False)
 
     def log_message(self, format, *args):
         return

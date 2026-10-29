@@ -1,2 +1,36 @@
-python3 health_server.py >/tmp/mikasa-health.log 2>&1 &
-exec python3 -m MikasaMusic
+#!/usr/bin/env bash
+set -u
+
+python3 -u health_server.py >/tmp/mikasa-health.log 2>&1 &
+health_pid=$!
+bot_pid=""
+stopping=0
+
+cleanup() {
+    stopping=1
+    if [[ -n "${bot_pid}" ]] && kill -0 "${bot_pid}" 2>/dev/null; then
+        kill -TERM "${bot_pid}" 2>/dev/null || true
+        wait "${bot_pid}" 2>/dev/null || true
+    fi
+    if kill -0 "${health_pid}" 2>/dev/null; then
+        kill -TERM "${health_pid}" 2>/dev/null || true
+        wait "${health_pid}" 2>/dev/null || true
+    fi
+}
+
+trap cleanup TERM INT
+trap cleanup EXIT
+
+echo "Mikasa Music supervisor started; health server PID ${health_pid}."
+
+while [[ "${stopping}" -eq 0 ]]; do
+    python3 -u -m MikasaMusic &
+    bot_pid=$!
+    wait "${bot_pid}"
+    exit_code=$?
+    bot_pid=""
+
+    [[ "${stopping}" -eq 1 ]] && break
+    echo "Mikasa Music exited with status ${exit_code}; restarting in 10 seconds..."
+    sleep 10
+done

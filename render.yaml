@@ -8,6 +8,7 @@ services:
       apt-get update && apt-get install -y ffmpeg
       pip install -r requirements.txt
     startCommand: bash start
+    healthCheckPath: /healthz
     autoDeploy: true
 
     envVars:
