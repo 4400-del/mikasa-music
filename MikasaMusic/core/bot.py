@@ -1,4 +1,3 @@
-from MikasaMusic.utils.inline.buttons import styled_button
 import pyrogram
 from pyrogram import Client
 from pyrogram.enums import ChatMemberStatus, ParseMode
@@ -32,7 +31,7 @@ class Nand(Client):
         button = InlineKeyboardMarkup(
             [
                 [
-                    styled_button(
+                    InlineKeyboardButton(
                         text="Add Me To Your Group",
                         url=f"https://t.me/{self.username}?startgroup=true",
                     )
