@@ -101,20 +101,12 @@ async def _download_with_ytdlp(link: str, video: bool = False) -> str:
 async def download_song(link: str) -> str:
     try:
         downloaded = await asyncio.wait_for(
-            _download_with_invidious(link), timeout=DOWNLOAD_ATTEMPT_TIMEOUT
+            _download_with_ytdlp(link, video=False), timeout=DOWNLOAD_TIMEOUT
         )
         if downloaded:
             return downloaded
     except Exception as e:
-        LOGGER(__name__).warning(f"Invidious audio failed, trying yt-dlp: {e}")
-    try:
-        downloaded = await asyncio.wait_for(
-            _download_with_ytdlp(link, video=False), timeout=DOWNLOAD_ATTEMPT_TIMEOUT
-        )
-        if downloaded:
-            return downloaded
-    except Exception as e:
-        LOGGER(__name__).error(f"Audio download failed: {e}")
+        LOGGER(__name__).error(f"YouTube audio download failed: {e}")
     return None
 
 
@@ -140,10 +132,6 @@ async def _extract_track(link: str):
         "skip_download": True,
     }
     options.update(_yt_dlp_network_options())
-    cookie_file = _prepare_cookie_file()
-    if cookie_file:
-        options["cookiefile"] = cookie_file
-
     def fetch():
         with yt_dlp.YoutubeDL(options) as ydl:
             info = ydl.extract_info(query, download=False)
@@ -161,16 +149,39 @@ async def _extract_track(link: str):
             return info
         raise RuntimeError("yt-dlp returned no track")
     except Exception as error:
-        LOGGER(__name__).warning(f"yt-dlp metadata failed, trying Invidious: {error}")
+        LOGGER(__name__).warning(f"yt-dlp metadata failed, trying YouTube search: {error}")
         try:
             return await asyncio.wait_for(
-                _invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.35
+                _legacy_search_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.25
             )
-        except Exception as fallback_error:
-            LOGGER(__name__).error(
-                f"Track details lookup failed after timeout: {fallback_error}"
-            )
-            raise RuntimeError("Track details could not be fetched in time") from fallback_error
+        except Exception as search_error:
+            LOGGER(__name__).warning(f"YouTube search failed, trying Invidious: {search_error}")
+            try:
+                return await asyncio.wait_for(
+                    _invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.10
+                )
+            except Exception as fallback_error:
+                LOGGER(__name__).error(
+                    f"Track details lookup failed after timeout: {fallback_error}"
+                )
+                raise RuntimeError("Track details could not be fetched in time") from fallback_error
+
+
+async def _legacy_search_track(link: str):
+    """Small metadata-only fallback using youtube-search-python."""
+    query = link.strip()
+    results = VideosSearch(query, limit=1)
+    payload = await results.next()
+    item = (payload.get("result") or [])[0]
+    if not item or not item.get("id"):
+        raise ValueError("No YouTube result found")
+    return {
+        "id": item["id"],
+        "title": item.get("title"),
+        "duration": item.get("duration"),
+        "thumbnail": (item.get("thumbnails") or [{}])[0].get("url"),
+        "webpage_url": item.get("link") or f"https://www.youtube.com/watch?v={item['id']}",
+    }
 
 
 async def _invidious_json(path):
@@ -506,9 +517,6 @@ class YouTubeAPI:
                 "skip_download": True,
             }
             options.update(_yt_dlp_network_options())
-            cookie_file = _prepare_cookie_file()
-            if cookie_file:
-                options["cookiefile"] = cookie_file
             with yt_dlp.YoutubeDL(options) as ydl:
                 info = ydl.extract_info(link, download=False)
                 return info.get("url")
