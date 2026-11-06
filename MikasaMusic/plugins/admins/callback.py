@@ -77,7 +77,11 @@ ADMIN_BROADCAST_TEXT = {
 @app.on_callback_query(filters.regex("^admin_panel$") & ~BANNED_USERS)
 async def admin_panel_callback(client, callback_query: CallbackQuery):
     if callback_query.from_user.id not in SUDOERS:
-        return await callback_query.answer("🔒 ᴛʜɪs ᴘᴀɴᴇʟ ɪs ʟɪᴍɪᴛᴇᴅ ᴛᴏ sᴜᴅᴏ ᴜsᴇʀs.", show_alert=True)
+        return await callback_query.answer(
+            "👽 ᴏᴏᴘs! Aᴅᴍɪɴ ᴘᴀɴᴇʟ ᴛᴜᴍʜᴀʀᴇ ʟɪʏᴇ ɴᴀʜɪɴ ʜᴀɪ 😄\n\n"
+            "🔒 Pʟᴇᴀsᴇ ᴜsᴇ ᴛʜᴇ ᴘᴜʙʟɪᴄ ᴍᴜsɪᴄ ғᴇᴀᴛᴜʀᴇs.",
+            show_alert=True,
+        )
     await callback_query.answer()
     await callback_query.message.edit_caption(
         caption=("🛠 <b>ᴍɪᴋᴀsᴀ ᴍᴜsɪᴄ — ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ</b>\n\n"
@@ -91,7 +95,10 @@ async def admin_panel_callback(client, callback_query: CallbackQuery):
 @app.on_callback_query(filters.regex("^admin_(broadcast_user|broadcast_chat|broadcast_all|broadcast_stats|reminder_info)$") & ~BANNED_USERS)
 async def admin_panel_detail_callback(client, callback_query: CallbackQuery):
     if callback_query.from_user.id not in SUDOERS:
-        return await callback_query.answer("🔒 ᴀᴅᴍɪɴ ᴀᴄᴄᴇss ʀᴇǫᴜɪʀᴇᴅ.", show_alert=True)
+        return await callback_query.answer(
+            "👽 Nɪᴄᴇ ᴛʀʏ! Tʜɪs ᴍᴇɴᴜ ɪs ғᴏʀ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴀᴅᴍɪɴs ᴏɴʟʏ 😄",
+            show_alert=True,
+        )
     await callback_query.answer()
     await callback_query.message.edit_caption(
         caption=ADMIN_BROADCAST_TEXT[callback_query.data],

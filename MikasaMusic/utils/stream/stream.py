@@ -216,6 +216,19 @@ async def stream(
                 video=status,
                 image=thumbnail,
             )
+            # Voice calls can take a few seconds to settle on the assistant.
+            # Keep members informed, then remove the temporary notice.
+            startup_notice = await app.send_message(
+                original_chat_id,
+                "🎧 <b>Jᴜsᴛ A Mᴏᴍᴇɴᴛ...</b>\n\n"
+                "┣ 🔊 Vᴏɪᴄᴇ ᴍᴀʏ sᴛᴜᴛᴛᴇʀ ғᴏʀ 2–3 sᴇᴄᴏɴᴅs\n"
+                "┗ ✨ Eᴠᴇʀʏᴛʜɪɴɢ ᴡɪʟʟ ʙᴇ ɴᴏʀᴍᴀʟ sʜᴏʀᴛʟʏ — sᴏʀʀʏ ғᴏʀ ᴛʜɪs 🙃",
+            )
+            await asyncio.sleep(3)
+            try:
+                await startup_notice.delete()
+            except Exception:
+                pass
             await put_queue(
                 chat_id,
                 original_chat_id,
