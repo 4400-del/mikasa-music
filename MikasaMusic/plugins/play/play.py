@@ -20,6 +20,7 @@
 # Email: YOUR_EMAIL@example.com
 
 
+import asyncio
 import random
 import string
 
@@ -45,6 +46,35 @@ from MikasaMusic.utils.inline import (
 from MikasaMusic.utils.logger import play_logs
 from MikasaMusic.utils.stream.stream import stream
 from config import BANNED_USERS, lyrical
+
+
+WAIT_STATUS = (
+    "🔎 <b>Fᴇᴛᴄʜɪɴɢ Tʀᴀᴄᴋ Dᴇᴛᴀɪʟs...</b>\n\n┣ 🔗 Rᴇᴀᴅɪɴɢ ᴛʜᴇ ʀᴇǫᴜᴇsᴛ\n┗ ⏳ Jᴜsᴛ ᴀ ᴍᴏᴍᴇɴᴛ...",
+    "🎧 <b>Fɪɴᴅɪɴɢ Tʜᴇ Bᴇsᴛ Aᴜᴅɪᴏ Sᴏᴜʀᴄᴇ...</b>\n\n┣ 🛰️ Cᴏɴɴᴇᴄᴛɪɴɢ ᴛᴏ ᴛʜᴇ ᴍᴜsɪᴄ sᴇʀᴠɪᴄᴇ\n┗ ⏳ Pʟᴇᴀsᴇ ᴡᴀɪᴛ...",
+    "⚙️ <b>Pʀᴇᴘᴀʀɪɴɢ Yᴏᴜʀ Tʀᴀᴄᴋ...</b>\n\n┣ 🎼 Pʀᴏᴄᴇssɪɴɢ ᴀᴜᴅɪᴏ\n┗ 🚀 Gᴇᴛᴛɪɴɢ ᴛʜᴇ sᴛʀᴇᴀᴍ ʀᴇᴀᴅʏ...",
+    "🎶 <b>Aʟᴍᴏsᴛ Rᴇᴀᴅʏ...</b>\n\n┣ 📡 Cᴏɴɴᴇᴄᴛɪɴɢ ᴛᴏ ᴠᴏɪᴄᴇ ᴄʜᴀᴛ\n┗ 🔊 Mᴜsɪᴄ ᴡɪʟʟ sᴛᴀʀᴛ sʜᴏʀᴛʟʏ...",
+)
+
+
+async def _run_with_wait_status(operation, message):
+    """Keep the requester informed while a slow lookup/download is running."""
+    task = asyncio.create_task(operation)
+    index = 0
+    try:
+        while not task.done():
+            try:
+                await message.edit_text(WAIT_STATUS[index % len(WAIT_STATUS)])
+            except Exception:
+                pass
+            index += 1
+            try:
+                await asyncio.wait_for(asyncio.shield(task), timeout=3)
+            except asyncio.TimeoutError:
+                continue
+        return await task
+    finally:
+        if not task.done():
+            task.cancel()
 
 
 @app.on_message(
@@ -199,7 +229,9 @@ async def play_commnd(
                 cap = _["play_9"]
             else:
                 try:
-                    details, track_id = await YouTube.track(url)
+                    details, track_id = await _run_with_wait_status(
+                        YouTube.track(url), mystic
+                    )
                 except:
                     return await mystic.edit_text(_["play_3"])
                 streamtype = "youtube"
@@ -355,7 +387,9 @@ async def play_commnd(
         if "-v" in query:
             query = query.replace("-v", "")
         try:
-            details, track_id = await YouTube.track(query)
+            details, track_id = await _run_with_wait_status(
+                YouTube.track(query), mystic
+            )
         except:
             return await mystic.edit_text(_["play_3"])
         streamtype = "youtube"
@@ -381,18 +415,21 @@ async def play_commnd(
                     reply_markup=InlineKeyboardMarkup(buttons),
                 )
         try:
-            await stream(
-                _,
+            await _run_with_wait_status(
+                stream(
+                    _,
+                    mystic,
+                    user_id,
+                    details,
+                    chat_id,
+                    user_name,
+                    message.chat.id,
+                    video=video,
+                    streamtype=streamtype,
+                    spotify=spotify,
+                    forceplay=fplay,
+                ),
                 mystic,
-                user_id,
-                details,
-                chat_id,
-                user_name,
-                message.chat.id,
-                video=video,
-                streamtype=streamtype,
-                spotify=spotify,
-                forceplay=fplay,
             )
         except Exception as e:
             print(f"Error: {e}")
@@ -485,7 +522,9 @@ async def play_music(client, CallbackQuery, _):
         _["play_2"].format(channel) if channel else _["play_1"]
     )
     try:
-        details, track_id = await YouTube.track(vidid, True)
+        details, track_id = await _run_with_wait_status(
+            YouTube.track(vidid, True), mystic
+        )
     except:
         return await mystic.edit_text(_["play_3"])
     if details["duration_min"]:
@@ -510,17 +549,20 @@ async def play_music(client, CallbackQuery, _):
     video = True if mode == "v" else None
     ffplay = True if fplay == "f" else None
     try:
-        await stream(
-            _,
+        await _run_with_wait_status(
+            stream(
+                _,
+                mystic,
+                CallbackQuery.from_user.id,
+                details,
+                chat_id,
+                user_name,
+                CallbackQuery.message.chat.id,
+                video=video,
+                streamtype="youtube",
+                forceplay=ffplay,
+            ),
             mystic,
-            CallbackQuery.from_user.id,
-            details,
-            chat_id,
-            user_name,
-            CallbackQuery.message.chat.id,
-            video,
-            streamtype="youtube",
-            forceplay=ffplay,
         )
     except Exception as e:
         print(f"Error: {e}")
