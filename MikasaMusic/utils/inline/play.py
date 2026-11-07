@@ -101,13 +101,17 @@ def stream_markup_timer(_, chat_id, played, dur):
 def stream_markup(_, chat_id):
     buttons = [
         [
-            styled_button(text="▷", callback_data=f"ADMIN Resume|{chat_id}"),
-            styled_button(text="II", callback_data=f"ADMIN Pause|{chat_id}"),
-            styled_button(text="↻", callback_data=f"ADMIN Replay|{chat_id}"),
-            styled_button(text="‣‣I", callback_data=f"ADMIN Skip|{chat_id}"),
-            styled_button(text="▢", callback_data=f"ADMIN Stop|{chat_id}"),
+            styled_button(text="▷", callback_data=f"ADMIN Resume|{chat_id}", style="success"),
+            styled_button(text="II", callback_data=f"ADMIN Pause|{chat_id}", style="primary"),
+            styled_button(text="↻", callback_data=f"ADMIN Replay|{chat_id}", style="primary"),
+            styled_button(text="‣‣I", callback_data=f"ADMIN Skip|{chat_id}", style="primary"),
+            styled_button(text="▢", callback_data=f"ADMIN Stop|{chat_id}", style="danger"),
         ],
-        [styled_button(text=_["CLOSE_BUTTON"], callback_data="close")],
+        [
+            styled_button(text="💬 sᴜᴘᴘᴏʀᴛ", url=SUPPORT_GROUP, style="primary"),
+            styled_button(text="📢 ᴄʜᴀɴɴᴇʟ", url=SUPPORT_CHANNEL, style="primary"),
+        ],
+        [styled_button(text=_["CLOSE_BUTTON"], callback_data="close", style="danger")],
     ]
     return buttons
 

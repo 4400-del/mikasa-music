@@ -5,6 +5,8 @@ sendRichMessage directly and lets callers keep the existing Pyrogram path when
 Telegram rejects an unsupported rich payload or an older client/API gateway.
 """
 
+import re
+
 import aiohttp
 import config
 
@@ -62,6 +64,10 @@ async def send_rich_message(chat_id, html, reply_markup=None, reply_to_message_i
 def start_rich_html(caption, image_url=None):
     """Wrap the existing styled copy in a structured, client-friendly card."""
     media = f'<img src="{image_url}"/>' if image_url else ""
+    # Pyrogram mentions often arrive as href=tg://...; Rich HTML requires
+    # quoted attributes. Preserve the existing Telegram formatting tags.
+    caption = re.sub(r'href=(?!["\'])([^\s>]+)', r'href="\1"', caption)
+    caption = caption.replace(" & ", " &amp; ").replace("\n", "<br/>")
     return (
         f"{media}<h2>🎶 Mɪᴋᴀsᴀ Mᴜsɪᴄ</h2>"
         f"<blockquote>{caption}</blockquote>"
