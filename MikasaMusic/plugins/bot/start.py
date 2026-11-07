@@ -21,9 +21,26 @@ from MikasaMusic.utils import bot_sys_stats
 from MikasaMusic.utils.decorators.language import LanguageStart
 from MikasaMusic.utils.formatters import get_readable_time
 from MikasaMusic.utils.inline import help_pannel_page1, private_panel, start_panel
+from MikasaMusic.utils.reactions import react_to_message
 from MikasaMusic.utils.rich import send_rich_message, start_rich_html
 from config import BANNED_USERS
 from strings import get_string
+
+
+_START_HANDLED = set()
+
+
+async def _handle_start_once(message):
+    """Prevent duplicate replies if the same update is delivered twice."""
+    key = (message.chat.id, message.id)
+    if key in _START_HANDLED:
+        return False
+    _START_HANDLED.add(key)
+    if len(_START_HANDLED) > 2000:
+        _START_HANDLED.clear()
+        _START_HANDLED.add(key)
+    await react_to_message(message.chat.id, message.id, "✨")
+    return True
 
 
 async def _send_start_card(message, caption, keyboard):
@@ -47,6 +64,8 @@ async def _send_start_card(message, caption, keyboard):
 @app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
 @LanguageStart
 async def start_pm(client, message: Message, _):
+    if not await _handle_start_once(message):
+        return
     await add_served_user(message.from_user.id)
     if len(message.text.split()) > 1:
         name = message.text.split(None, 1)[1]
@@ -150,6 +169,8 @@ async def start_pm(client, message: Message, _):
 @app.on_message(filters.command(["start"]) & filters.group & ~BANNED_USERS)
 @LanguageStart
 async def start_gp(client, message: Message, _):
+    if not await _handle_start_once(message):
+        return
     out = start_panel(_)
     uptime = int(time.time() - _boot_)
     await _send_start_card(

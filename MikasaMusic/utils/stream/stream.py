@@ -39,6 +39,38 @@ from MikasaMusic.utils.stream.queue import put_queue, put_queue_index
 from MikasaMusic.utils.thumbnails import gen_thumb
 
 
+async def _send_now_playing(_, original_chat_id, chat_id, vidid, title, duration_min, user_name):
+    """Send the designed card without breaking playback on thumbnail/parser errors."""
+    try:
+        img = await gen_thumb(vidid)
+    except Exception:
+        img = None
+    img = img or config.YOUTUBE_IMG_URL
+    button = stream_markup(_, chat_id)
+    caption = _["stream_1"].format(
+        f"https://t.me/{app.username}?start=info_{vidid}",
+        title[:23], duration_min, user_name,
+    )
+    try:
+        return await app.send_photo(
+            original_chat_id,
+            photo=img,
+            caption=caption,
+            reply_markup=InlineKeyboardMarkup(button),
+        )
+    except Exception:
+        return await app.send_message(
+            original_chat_id,
+            text=(
+                f"💫 <b>STARTED STREAMING</b>\n\n"
+                f"🎀 <b>TITLE:</b> {title[:60]}\n"
+                f"⏰ <b>DURATION:</b> {duration_min} minutes\n"
+                f"🪄 <b>REQUESTED BY:</b> {user_name}"
+            ),
+            reply_markup=InlineKeyboardMarkup(button),
+        )
+
+
 async def stream(
     _,
     mystic,
@@ -123,18 +155,8 @@ async def stream(
                     "video" if video else "audio",
                     forceplay=forceplay,
                 )
-                img = await gen_thumb(vidid)
-                button = stream_markup(_, chat_id)
-                run = await app.send_photo(
-                    original_chat_id,
-                    photo=img,
-                    caption=_["stream_1"].format(
-                        f"https://t.me/{app.username}?start=info_{vidid}",
-                        title[:23],
-                        duration_min,
-                        user_name,
-                    ),
-                    reply_markup=InlineKeyboardMarkup(button),
+                run = await _send_now_playing(
+                    _, original_chat_id, chat_id, vidid, title, duration_min, user_name
                 )
                 db[chat_id][0]["mystic"] = run
                 db[chat_id][0]["markup"] = "stream"
@@ -241,18 +263,8 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
-            img = await gen_thumb(vidid)
-            button = stream_markup(_, chat_id)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=img,
-                caption=_["stream_1"].format(
-                    f"https://t.me/{app.username}?start=info_{vidid}",
-                    title[:23],
-                    duration_min,
-                    user_name,
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
+            run = await _send_now_playing(
+                _, original_chat_id, chat_id, vidid, title, duration_min, user_name
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "stream"
@@ -409,18 +421,8 @@ async def stream(
                 "video" if video else "audio",
                 forceplay=forceplay,
             )
-            img = await gen_thumb(vidid)
-            button = stream_markup(_, chat_id)
-            run = await app.send_photo(
-                original_chat_id,
-                photo=img,
-                caption=_["stream_1"].format(
-                    f"https://t.me/{app.username}?start=info_{vidid}",
-                    title[:23],
-                    duration_min,
-                    user_name,
-                ),
-                reply_markup=InlineKeyboardMarkup(button),
+            run = await _send_now_playing(
+                _, original_chat_id, chat_id, vidid, title, duration_min, user_name
             )
             db[chat_id][0]["mystic"] = run
             db[chat_id][0]["markup"] = "tg"
