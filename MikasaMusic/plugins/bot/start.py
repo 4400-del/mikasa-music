@@ -21,8 +21,27 @@ from MikasaMusic.utils import bot_sys_stats
 from MikasaMusic.utils.decorators.language import LanguageStart
 from MikasaMusic.utils.formatters import get_readable_time
 from MikasaMusic.utils.inline import help_pannel_page1, private_panel, start_panel
+from MikasaMusic.utils.rich import send_rich_message, start_rich_html
 from config import BANNED_USERS
 from strings import get_string
+
+
+async def _send_start_card(message, caption, keyboard):
+    """Prefer Telegram Rich HTML, then fall back to the proven photo card."""
+    markup = InlineKeyboardMarkup(keyboard) if isinstance(keyboard, list) else keyboard
+    rich = await send_rich_message(
+        chat_id=message.chat.id,
+        html=start_rich_html(caption, config.START_IMG_URL),
+        reply_markup=markup,
+        reply_to_message_id=message.id,
+    )
+    if rich:
+        return
+    await message.reply_photo(
+        photo=config.START_IMG_URL,
+        caption=caption,
+        reply_markup=markup,
+    )
 
 
 @app.on_message(filters.command(["start"]) & filters.private & ~BANNED_USERS)
@@ -103,19 +122,11 @@ async def start_pm(client, message: Message, _):
         if name == "start":
             out = private_panel(_)
             UP, CPU, RAM, DISK = await bot_sys_stats()
-            try:
-                await message.reply_photo(
-                    photo=config.START_IMG_URL,
-                    caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
-                    reply_markup=InlineKeyboardMarkup(out),
-                    
-                )
-            except:
-                await message.reply_photo(
-                    photo=config.START_IMG_URL,
-                    caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
-                    reply_markup=InlineKeyboardMarkup(out),
-                )
+            await _send_start_card(
+                message,
+                _["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
+                out,
+            )
             if await is_on_off(2):
                 return await app.send_message(
                     chat_id=config.LOG_GROUP_ID,
@@ -124,19 +135,11 @@ async def start_pm(client, message: Message, _):
     else:
         out = private_panel(_)
         UP, CPU, RAM, DISK = await bot_sys_stats()
-        try:
-            await message.reply_photo(
-                photo=config.START_IMG_URL,
-                caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
-                reply_markup=InlineKeyboardMarkup(out),
-                
-            )
-        except:
-            await message.reply_photo(
-                photo=config.START_IMG_URL,
-                caption=_["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
-                reply_markup=InlineKeyboardMarkup(out),
-            )
+        await _send_start_card(
+            message,
+            _["start_2"].format(message.from_user.mention, app.mention, UP, DISK, CPU, RAM),
+            out,
+        )
         if await is_on_off(2):
             return await app.send_message(
                 chat_id=config.LOG_GROUP_ID,
@@ -149,19 +152,11 @@ async def start_pm(client, message: Message, _):
 async def start_gp(client, message: Message, _):
     out = start_panel(_)
     uptime = int(time.time() - _boot_)
-    try:
-        await message.reply_photo(
-            photo=config.START_IMG_URL,
-            caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
-            reply_markup=InlineKeyboardMarkup(out),
-            
-        )
-    except:
-        await message.reply_photo(
-            photo=config.START_IMG_URL,
-            caption=_["start_1"].format(app.mention, get_readable_time(uptime)),
-            reply_markup=InlineKeyboardMarkup(out),
-        )
+    await _send_start_card(
+        message,
+        _["start_1"].format(app.mention, get_readable_time(uptime)),
+        out,
+    )
     return await add_served_chat(message.chat.id)
 
 
