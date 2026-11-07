@@ -25,6 +25,7 @@ from MikasaMusic.utils.reactions import react_to_message
 from MikasaMusic.utils.rich import send_rich_message, start_rich_html
 from config import BANNED_USERS
 from strings import get_string
+import asyncio
 
 
 _START_HANDLED = set()
@@ -39,7 +40,9 @@ async def _handle_start_once(message):
     if len(_START_HANDLED) > 2000:
         _START_HANDLED.clear()
         _START_HANDLED.add(key)
-    await react_to_message(message.chat.id, message.id, "✨")
+    # Never hold the command reply while Telegram reaction API is connecting.
+    # Reaction is best-effort and must not affect the bot's primary response.
+    asyncio.create_task(react_to_message(message.chat.id, message.id, "✨"))
     return True
 
 
