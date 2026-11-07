@@ -23,6 +23,7 @@
 import asyncio
 import importlib
 from pyrogram import idle
+from pyrogram.errors import FloodWait
 from pyrogram.types import BotCommand
 from pytgcalls.exceptions import NoActiveGroupCall
 import config
@@ -98,7 +99,15 @@ async def init():
     except:
         pass
 
-    await app.start()
+    while True:
+        try:
+            await app.start()
+            break
+        except FloodWait as wait:
+            LOGGER(__name__).error(
+                f"Telegram FloodWait during startup; waiting {wait.value} seconds before retrying."
+            )
+            await asyncio.sleep(wait.value + 5)
     
     await setup_bot_commands()
 
