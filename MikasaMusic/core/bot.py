@@ -20,6 +20,58 @@ class Nand(Client):
             max_concurrent_transmissions=7,
         )
 
+    @staticmethod
+    async def _apply_styles(message, markup):
+        if not message or not markup:
+            return
+        rows = getattr(markup, "inline_keyboard", markup)
+        if not any(getattr(button, "_mikasa_style", None) for row in rows for button in row):
+            return
+        from MikasaMusic.utils.inline.buttons import apply_button_styles
+        await apply_button_styles(message.chat.id, message.id, markup)
+
+    async def send_message(self, *args, **kwargs):
+        markup = kwargs.get("reply_markup")
+        message = await super().send_message(*args, **kwargs)
+        await self._apply_styles(message, markup)
+        return message
+
+    async def send_photo(self, *args, **kwargs):
+        markup = kwargs.get("reply_markup")
+        message = await super().send_photo(*args, **kwargs)
+        await self._apply_styles(message, markup)
+        return message
+
+    async def send_audio(self, *args, **kwargs):
+        markup = kwargs.get("reply_markup")
+        message = await super().send_audio(*args, **kwargs)
+        await self._apply_styles(message, markup)
+        return message
+
+    async def send_video(self, *args, **kwargs):
+        markup = kwargs.get("reply_markup")
+        message = await super().send_video(*args, **kwargs)
+        await self._apply_styles(message, markup)
+        return message
+
+    async def edit_message_text(self, *args, **kwargs):
+        markup = kwargs.get("reply_markup")
+        message = await super().edit_message_text(*args, **kwargs)
+        await self._apply_styles(message, markup)
+        return message
+
+    async def edit_message_caption(self, *args, **kwargs):
+        markup = kwargs.get("reply_markup")
+        message = await super().edit_message_caption(*args, **kwargs)
+        await self._apply_styles(message, markup)
+        return message
+
+    async def edit_message_reply_markup(self, *args, **kwargs):
+        markup = kwargs.get("reply_markup")
+        message = await super().edit_message_reply_markup(*args, **kwargs)
+        await self._apply_styles(message, markup)
+        return message
+
     async def start(self):
         await super().start()
         get_me = await self.get_me()

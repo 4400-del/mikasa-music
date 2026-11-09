@@ -7,6 +7,8 @@ normal button without breaking the bot.
 """
 
 import inspect
+import aiohttp
+import config
 
 from pyrogram.types import InlineKeyboardButton
 
@@ -37,4 +39,46 @@ def styled_button(*args, style=None, **kwargs):
     style = style or _pick_style(text, kwargs.get("callback_data"))
     if _STYLE_SUPPORT:
         return InlineKeyboardButton(text=text, *positional, style=style, **kwargs)
-    return InlineKeyboardButton(text=text, *positional, **kwargs)
+    button = InlineKeyboardButton(text=text, *positional, **kwargs)
+    # Pyrofork currently drops Bot API 9.4's style field. Keep it on the
+    # object so the HTTP markup patcher can apply the real style afterwards.
+    button._mikasa_style = style
+    return button
+
+
+def _button_payload(button):
+    data = {"text": button.text}
+    style = getattr(button, "_mikasa_style", None)
+    if style:
+        data["style"] = style
+    for key in (
+        "callback_data", "url", "switch_inline_query",
+        "switch_inline_query_current_chat",
+    ):
+        value = getattr(button, key, None)
+        if value is not None:
+            data[key] = value.decode() if isinstance(value, bytes) else value
+            break
+    return data
+
+
+async def apply_button_styles(chat_id, message_id, markup):
+    """Apply Bot API 9.4 styles after Pyrofork sends the message."""
+    if not markup or not config.BOT_TOKEN:
+        return False
+    rows = getattr(markup, "inline_keyboard", markup)
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "reply_markup": {
+            "inline_keyboard": [[_button_payload(button) for button in row] for row in rows]
+        },
+    }
+    url = f"https://api.telegram.org/bot{config.BOT_TOKEN}/editMessageReplyMarkup"
+    try:
+        timeout = aiohttp.ClientTimeout(total=8)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, json=payload) as response:
+                return response.status == 200
+    except Exception:
+        return False
