@@ -531,29 +531,16 @@ class YouTubeAPI:
         cached = _AUDIO_CACHE.get(link)
         if cached and time.monotonic() - cached[0] < _AUDIO_CACHE_TTL:
             return cached[1]
-        # Do not pass Invidious' proxied videoplayback URLs to PyTgCalls.
-        # Those URLs frequently return a valid-looking response but PyTgCalls
-        # rejects them with "No audio source found". Resolve a native YouTube
-        # audio URL with yt-dlp instead; Invidious remains available for metadata.
+        # Do not pass a fragile YouTube videoplayback URL to PyTgCalls. These
+        # URLs often look valid to yt-dlp but expire or get rejected by the
+        # voice client as "No audio source found". Use the local ShrutiAPI
+        # download path instead; it produces a stable file for PyTgCalls.
 
-        def resolve_with_ytdlp():
-            options = {
-                "format": "bestaudio/best",
-                "quiet": True,
-                "no_warnings": True,
-                "noplaylist": True,
-                "skip_download": True,
-            }
-            options.update(_yt_dlp_network_options())
-            with yt_dlp.YoutubeDL(options) as ydl:
-                info = ydl.extract_info(link, download=False)
-                return info.get("url")
-
-        try:
-            audio_url = await asyncio.wait_for(asyncio.to_thread(resolve_with_ytdlp), timeout=12)
-            if audio_url:
-                _AUDIO_CACHE[link] = (time.monotonic(), audio_url)
-                return audio_url
-        except Exception as error:
-            LOGGER(__name__).warning(f"yt-dlp direct audio failed: {error}")
+        LOGGER(__name__).info("Resolving audio through ShrutiAPI local download")
+        shruti_file = await _download_with_shruti_api(link, media_type="audio")
+        if shruti_file:
+            return shruti_file
+        LOGGER(__name__).error(
+            "No playable audio source: ShrutiAPI returned no file after yt-dlp fallback"
+        )
         return None
