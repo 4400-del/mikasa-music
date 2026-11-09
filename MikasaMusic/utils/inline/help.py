@@ -21,8 +21,8 @@ def InlineKeyboardButton(*args, **kwargs):
     if args:
         if style:
             return styled_button(text=args[0], style=style, **kwargs)
-        return _InlineKeyboardButton(*args, **kwargs)
-    return styled_button(style=style, **kwargs)
+        return styled_button(text=args[0], style="primary", **kwargs)
+    return styled_button(style=style or "primary", **kwargs)
 
 def help_pannel_page1(_, START: Union[bool, int] = None):
     return InlineKeyboardMarkup(
