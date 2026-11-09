@@ -189,7 +189,7 @@ async def _extract_track(link: str):
     except Exception as error:
         LOGGER(__name__).warning(f"yt-dlp metadata failed, trying Invidious: {error}")
         try:
-            return await asyncio.wait_for(_invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT * 0.25)
+            return await asyncio.wait_for(_invidious_track(link), timeout=TRACK_LOOKUP_TIMEOUT)
         except Exception as fallback_error:
             LOGGER(__name__).error(f"Track details lookup failed after timeout: {fallback_error}")
             raise RuntimeError("Track details could not be fetched in time") from fallback_error
@@ -244,6 +244,11 @@ async def _invidious_track(link: str):
     video_match = re.search(r"(?:v=|youtu\.be/|shorts/)([A-Za-z0-9_-]{6,})", link)
     if video_match:
         info, _ = await _invidious_json(f"/api/v1/videos/{video_match.group(1)}?local=1")
+        # Invidious calls this field videoId; the rest of the bot expects id.
+        info["id"] = info.get("id") or info.get("videoId")
+        info["duration"] = info.get("duration") or info.get("lengthSeconds")
+        info["webpage_url"] = info.get("webpage_url") or f"https://www.youtube.com/watch?v={info['id']}"
+        info["thumbnail"] = info.get("thumbnail") or (info.get("videoThumbnails") or [{}])[0].get("url")
         _TRACK_CACHE[cache_key] = (time.monotonic(), info)
         return info
     from urllib.parse import quote
