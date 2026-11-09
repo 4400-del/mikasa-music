@@ -119,7 +119,9 @@ async def _download_with_shruti_api(link: str, media_type: str) -> str:
         LOGGER(__name__).error("Could not determine YouTube video ID")
         return None
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-    extension = "mp3" if media_type == "audio" else "mp4"
+    # ShrutiAPI currently returns AAC inside an MP4/M4A container for audio.
+    # Saving that stream as .mp3 makes PyTgCalls reject it as no audio source.
+    extension = "m4a" if media_type == "audio" else "mp4"
     file_path = os.path.join(DOWNLOAD_DIR, f"{video_id}.{extension}")
     if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
         return file_path
